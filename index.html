@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PhotoSphere - Galerie Photo Communautaire</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+
+      * {
+        font-family: "Inter", sans-serif;
+      }
+
+      .gradient-bg {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      .glass-effect {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .photo-card {
+        transition: all 0.3s ease;
+        overflow: hidden;
+      }
+
+      .photo-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      }
+
+      .photo-card img {
+        transition: transform 0.5s ease;
+      }
+
+      .photo-card:hover img {
+        transform: scale(1.1);
+      }
+
+      .sidebar {
+        transition: transform 0.3s ease;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .modal.active {
+        display: flex;
+        opacity: 1;
+      }
+
+      .modal-content {
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+      }
+
+      .modal.active .modal-content {
+        transform: scale(1);
+      }
+
+      .tag-chip {
+        transition: all 0.2s ease;
+      }
+
+      .tag-chip:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+
+      .stats-card {
+        background: linear-gradient(
+          135deg,
+          rgba(102, 126, 234, 0.1) 0%,
+          rgba(118, 75, 162, 0.1) 100%
+        );
+      }
+
+      .upload-area {
+        border: 2px dashed #cbd5e0;
+        transition: all 0.3s ease;
+      }
+
+      .upload-area.dragover {
+        border-color: #667eea;
+        background: rgba(102, 126, 234, 0.05);
+      }
+
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        transform: translateX(400px);
+        transition: transform 0.3s ease;
+      }
+
+      .notification.show {
+        transform: translateX(0);
+      }
+
+      .progress-bar {
+        transition: width 0.3s ease;
+      }
+
+      .skeleton {
+        animation: skeleton-loading 1s linear infinite alternate;
+      }
+
+      @keyframes skeleton-loading {
+        0% {
+          background-color: #e0e0e0;
+        }
+        100% {
+          background-color: #f0f0f0;
+        }
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .ripple {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .ripple::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+      }
+
+      .ripple:active::after {
+        width: 300px;
+        height: 300px;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50">
+    <!-- Navigation Bar -->
+    <nav class="gradient-bg shadow-lg sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+          <div class="flex items-center space-x-4">
+            <i class="fas fa-camera text-white text-3xl"></i>
+            <span class="text-white text-2xl font-bold">PhotoSphere</span>
+          </div>
+
+          <div class="hidden md:flex items-center space-x-6">
+            <a
+              href="#"
+              onclick="showSection('home')"
+              class="text-white hover:text-gray-200 transition"
+              ><i class="fas fa-home mr-2"></i>Accueil</a
+            >
+            <a
+              href="#"
+              onclick="showSection('explore')"
+              class="text-white hover:text-gray-200 transition"
+              ><i class="fas fa-compass mr-2"></i>Explorer</a
+            >
+            <a
+              href="#"
+              onclick="showSection('albums')"
+              class="text-white hover:text-gray-200 transition"
+              ><i class="fas fa-book mr-2"></i>Albums</a
+            >
+            <a
+              href="#"
+              onclick="showSection('upload')"
+              class="text-white hover:text-gray-200 transition"
+              ><i class="fas fa-cloud-upload-alt mr-2"></i>Upload</a
+            >
+          </div>
+
+          <div class="flex items-center space-x-4">
+            <div class="relative">
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Rechercher..."
+                class="bg-white bg-opacity-20 text-white placeholder-gray-200 px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-white w-64"
+              />
+              <i class="fas fa-search absolute right-4 top-3 text-white"></i>
+            </div>
+
+            <div class="relative">
+              <button
+                onclick="toggleNotifications()"
+                class="text-white hover:text-gray-200 transition relative"
+              >
+                <i class="fas fa-bell text-xl"></i>
+                <span
+                  id="notifBadge"
+                  class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+                  >3</span
+                >
+              </button>
+            </div>
+
+            <div class="relative">
+              <button
+                onclick="toggleUserMenu()"
+                class="flex items-center space-x-2 text-white hover:text-gray-200 transition"
+              >
+                <img
+                  src="https://ui-avatars.com/api/?name=John+Doe&background=667eea&color=fff"
+                  alt="Profile"
+                  class="w-10 h-10 rounded-full border-2 border-white"
+                />
+                <span class="hidden md:block font-medium">John Doe</span>
+                <i class="fas fa-chevron-down text-sm"></i>
+              </button>
+
+              <div
+                id="userMenu"
+                class="hidden absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl py-2 z-50"
+              >
+                <div class="px-4 py-3 border-b border-gray-200">
+                  <p class="text-sm font-semibold text-gray-800">John Doe</p>
+                  <p class="text-xs text-gray-500">john.doe@example.com</p>
+                  <span
+                    class="inline-block mt-2 px-3 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full"
+                  >
+                    <i class="fas fa-crown mr-1"></i>Pro User
+                  </span>
+                </div>
+                <a
+                  href="#"
+                  onclick="showSection('profile')"
+                  class="block px-4 py-2 text-gray-800 hover:bg-gray-100"
+                  ><i class="fas fa-user mr-2"></i>Mon Profil</a
+                >
+                <a
+                  href="#"
+                  onclick="showSection('myPhotos')"
+                  class="block px-4 py-2 text-gray-800 hover:bg-gray-100"
+                  ><i class="fas fa-images mr-2"></i>Mes Photos</a
+                >
+                <a
+                  href="#"
+                  onclick="showSection('stats')"
+                  class="block px-4 py-2 text-gray-800 hover:bg-gray-100"
+                  ><i class="fas fa-chart-line mr-2"></i>Statistiques</a
+                >
+                <a
+                  href="#"
+                  onclick="showSection('settings')"
+                  class="block px-4 py-2 text-gray-800 hover:bg-gray-100"
+                  ><i class="fas fa-cog mr-2"></i>Paramètres</a
+                >
+                <div class="border-t border-gray-200 mt-2"></div>
+                <a
+                  href="#"
+                  onclick="logout()"
+                  class="block px-4 py-2 text-red-600 hover:bg-red-50"
+                  ><i class="fas fa-sign-out-alt mr-2"></i>Déconnexion</a
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Home Section -->
+      <div id="homeSection" class="section">
+        <!-- Hero Section -->
+        <div
+          class="gradient-bg rounded-3xl p-12 mb-8 text-white relative overflow-hidden"
+        >
+          <div class="relative z-10">
+            <h1 class="text-5xl font-bold mb-4">Bienvenue sur PhotoSphere</h1>
+            <p class="text-xl mb-6 text-gray-100">
+              Partagez vos plus belles photos avec la communauté
+            </p>
+            <div class="flex space-x-4">
+              <button
+                onclick="showSection('upload')"
+                class="bg-white text-purple-600 px-6 py-3 rounded-full font-semibold hover:bg-gray-100 transition ripple"
+              >
+                <i class="fas fa-cloud-upload-alt mr-2"></i>Télécharger une
+                photo
+              </button>
+              <button
+                onclick="showSection('explore')"
+                class="bg-transparent border-2 border-white text-white px-6 py-3 rounded-full font-semibold hover:bg-white hover:text-purple-600 transition ripple"
+              >
+                <i class="fas fa-compass mr-2"></i>Explorer la galerie
+              </button>
+            </div>
+          </div>
+          <div
+            class="absolute top-0 right-0 w-96 h-96 bg-white opacity-10 rounded-full -mr-48 -mt-48"
+          ></div>
+          <div
+            class="absolute bottom-0 left-0 w-64 h-64 bg-white opacity-10 rounded-full -ml-32 -mb-32"
+          ></div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div class="bg-white rounded-xl p-6 shadow-md stats-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-500 text-sm font-medium">Total Photos</p>
+                <p
+                  class="text-3xl font-bold text-gray-800 mt-2"
+                  id="totalPhotos"
+                >
+                  0
+                </p>
+              </div>
+              <div class="bg-blue-100 p-4 rounded-full">
+                <i class="fas fa-images text-blue-600 text-2xl"></i>
+              </div>
+            </div>
+            <div class="mt-4">
+              <span class="text-green-500 text-sm font-medium"
+                ><i class="fas fa-arrow-up mr-1"></i>12.5%</span
+              >
+              <span class="text-gray-500 text-sm ml-2">vs mois dernier</span>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-6 shadow-md stats-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-500 text-sm font-medium">Albums</p>
+                <p
+                  class="text-3xl font-bold text-gray-800 mt-2"
+                  id="totalAlbums"
+                >
+                  0
+                </p>
+              </div>
+              <div class="bg-purple-100 p-4 rounded-full">
+                <i class="fas fa-book text-purple-600 text-2xl"></i>
+              </div>
+            </div>
+            <div class="mt-4">
+              <span class="text-green-500 text-sm font-medium"
+                ><i class="fas fa-arrow-up mr-1"></i>8.2%</span
+              >
+              <span class="text-gray-500 text-sm ml-2">vs mois dernier</span>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-6 shadow-md stats-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-500 text-sm font-medium">Total Likes</p>
+                <p
+                  class="text-3xl font-bold text-gray-800 mt-2"
+                  id="totalLikes"
+                >
+                  0
+                </p>
+              </div>
+              <div class="bg-red-100 p-4 rounded-full">
+                <i class="fas fa-heart text-red-600 text-2xl"></i>
+              </div>
+            </div>
+            <div class="mt-4">
+              <span class="text-green-500 text-sm font-medium"
+                ><i class="fas fa-arrow-up mr-1"></i>23.1%</span
+              >
+              <span class="text-gray-500 text-sm ml-2">vs mois dernier</span>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-6 shadow-md stats-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-500 text-sm font-medium">Vues</p>
+                <p
+                  class="text-3xl font-bold text-gray-800 mt-2"
+                  id="totalViews"
+                >
+                  0
+                </p>
+              </div>
+              <div class="bg-green-100 p-4 rounded-full">
+                <i class="fas fa-eye text-green-600 text-2xl"></i>
+              </div>
+            </div>
+            <div class="mt-4">
+              <span class="text-green-500 text-sm font-medium"
+                ><i class="fas fa-arrow-up mr-1"></i>15.3%</span
+              >
+              <span class="text-gray-500 text-sm ml-2">vs mois dernier</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Featured Photos -->
+        <div class="mb-8">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold text-gray-800">Photos Populaires</h2>
+            <button
+              onclick="showSection('explore')"
+              class="text-purple-600 hover:text-purple-700 font-semibold"
+            >
+              Voir tout <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+          </div>
+          <div
+            id="featuredPhotos"
+            class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"
+          >
+            <!-- Photos will be loaded here -->
+          </div>
+        </div>
+
+        <!-- Recent Albums -->
+        <div>
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold text-gray-800">Albums Récents</h2>
+            <button
+              onclick="showSection('albums')"
+              class="text-purple-600 hover:text-purple-700 font-semibold"
+            >
+              Voir tout <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+          </div>
+          <div
+            id="recentAlbums"
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            <!-- Albums will be loaded here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Explore Section -->
+      <div id="exploreSection" class="section hidden">
+        <div class="flex justify-between items-center mb-8">
+          <h2 class="text-4xl font-bold text-gray-800">Explorer la Galerie</h2>
+          <div class="flex space-x-4">
+            <select
+              id="filterCategory"
+              onchange="filterPhotos()"
+              class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="all">Toutes les catégories</option>
+              <option value="nature">Nature</option>
+              <option value="portrait">Portrait</option>
+              <option value="urban">Urbain</option>
+              <option value="abstract">Abstrait</option>
+            </select>
+            <select
+              id="sortBy"
+              onchange="filterPhotos()"
+              class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="recent">Plus récentes</option>
+              <option value="popular">Plus populaires</option>
+              <option value="views">Plus vues</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Popular Tags -->
+        <div class="mb-8">
+          <h3 class="text-xl font-semibold text-gray-800 mb-4">
+            Tags Populaires
+          </h3>
+          <div id="popularTags" class="flex flex-wrap gap-2">
+            <!-- Tags will be loaded here -->
+          </div>
+        </div>
+
+        <!-- Photos Grid -->
+        <div
+          id="explorePhotos"
+          class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"
+        >
+          <!-- Photos will be loaded here -->
+        </div>
+
+        <!-- Load More Button -->
+        <div class="text-center mt-8">
+          <button
+            onclick="loadMorePhotos()"
+            class="bg-purple-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-purple-700 transition ripple"
+          >
+            <i class="fas fa-plus mr-2"></i>Charger plus
+          </button>
+        </div>
+      </div>
+
+      <!-- Albums Section -->
+      <div id="albumsSection" class="section hidden">
+        <div class="flex justify-between items-center mb-8">
+          <h2 class="text-4xl font-bold text-gray-800">Mes Albums</h2>
+          <button
+            onclick="openCreateAlbumModal()"
+            class="bg-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-purple-700 transition ripple"
+          >
+            <i class="fas fa-plus mr-2"></i>Créer un album
+          </button>
+        </div>
+
+        <div
+          id="albumsGrid"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          <!-- Albums will be loaded here -->
+        </div>
+      </div>
+
+      <!-- Upload Section -->
+      <div id="uploadSection" class="section hidden">
+        <div class="max-w-4xl mx-auto">
+          <h2 class="text-4xl font-bold text-gray-800 mb-8">
+            Télécharger une Photo
+          </h2>
+
+          <!-- Upload Quota -->
+          <div class="bg-white rounded-xl p-6 shadow-md mb-8">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-semibold text-gray-800">
+                Quota de téléchargement
+              </h3>
+              <span id="quotaText" class="text-purple-600 font-semibold"
+                >7 / 10 utilisées ce mois</span
+              >
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+              <div
+                id="quotaBar"
+                class="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full progress-bar"
+                style="width: 70%"
+              ></div>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">
+              Passez à Pro pour des uploads illimités!
+            </p>
+          </div>
+
+          <!-- Upload Area -->
+          <div
+            id="uploadArea"
+            class="upload-area bg-white rounded-xl p-12 text-center mb-8 cursor-pointer"
+          >
+            <i class="fas fa-cloud-upload-alt text-6xl text-gray-400 mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">
+              Glissez-déposez votre photo ici
+            </h3>
+            <p class="text-gray-500 mb-4">
+              ou cliquez pour parcourir vos fichiers
+            </p>
+            <p class="text-sm text-gray-400">JPG, PNG ou GIF - Max 10MB</p>
+            <input
+              type="file"
+              id="fileInput"
+              accept="image/jpeg,image/png,image/gif"
+              class="hidden"
+              onchange="handleFileSelect(event)"
+            />
+          </div>
+
+          <!-- Photo Form -->
+          <div id="photoForm" class="hidden bg-white rounded-xl p-8 shadow-md">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <img
+                  id="previewImage"
+                  src=""
+                  alt="Preview"
+                  class="w-full rounded-lg shadow-md mb-4"
+                />
+                <div class="text-sm text-gray-500">
+                  <p><strong>Nom:</strong> <span id="fileName"></span></p>
+                  <p><strong>Taille:</strong> <span id="fileSize"></span></p>
+                  <p>
+                    <strong>Dimensions:</strong>
+                    <span id="fileDimensions"></span>
+                  </p>
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-gray-700 font-semibold mb-2"
+                    >Titre *</label
+                  >
+                  <input
+                    type="text"
+                    id="photoTitle"
+                    placeholder="Titre de votre photo"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-gray-700 font-semibold mb-2"
+                    >Description</label
+                  >
+                  <textarea
+                    id="photoDescription"
+                    rows="4"
+                    placeholder="Décrivez votre photo..."
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  ></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-gray-700 font-semibold mb-2"
+                    >Tags *</label
+                  >
+                  <input
+                    type="text"
+                    id="photoTags"
+                    placeholder="nature, paysage, montagne..."
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <p class="text-sm text-gray-500 mt-1">
+                    Séparez les tags par des virgules
+                  </p>
+                </div>
+
+                <div>
+                  <label class="block text-gray-700 font-semibold mb-2"
+                    >Album (optionnel)</label
+                  >
+                  <select
+                    id="photoAlbum"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="">Aucun album</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="publishNow"
+                      checked
+                      class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                    />
+                    <span class="text-gray-700">Publier immédiatement</span>
+                  </label>
+                </div>
+
+                <div class="flex space-x-4 pt-4">
+                  <button
+                    onclick="uploadPhoto()"
+                    class="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition ripple"
+                  >
+                    <i class="fas fa-upload mr-2"></i>Télécharger
+                  </button>
+                  <button
+                    onclick="cancelUpload()"
+                    class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Section -->
+      <div id="profileSection" class="section hidden">
+        <div class="max-w-5xl mx-auto">
+          <!-- Profile Header -->
+          <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+            <div class="gradient-bg h-48"></div>
+            <div class="px-8 pb-8 -mt-20">
+              <div class="flex items-end space-x-6">
+                <img
+                  src="https://ui-avatars.com/api/?name=John+Doe&background=667eea&color=fff&size=150"
+                  alt="Profile"
+                  class="w-32 h-32 rounded-full border-4 border-white shadow-lg"
+                />
+                <div class="flex-1 pb-4">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <h2 class="text-3xl font-bold text-gray-800">John Doe</h2>
+                      <p class="text-gray-600">@johndoe</p>
+                      <span
+                        class="inline-block mt-2 px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-full"
+                      >
+                        <i class="fas fa-crown mr-1"></i>Pro User
+                      </span>
+                    </div>
+                    <button
+                      onclick="editProfile()"
+                      class="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 transition"
+                    >
+                      <i class="fas fa-edit mr-2"></i>Modifier
+                    </button>
+                  </div>
+                  <p class="text-gray-600 mt-4 max-w-2xl">
+                    Photographe passionné spécialisé dans les paysages et la
+                    nature. Membre depuis janvier 2024.
+                  </p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-4 gap-4 mt-8">
+                <div class="text-center">
+                  <p class="text-3xl font-bold text-gray-800">156</p>
+                  <p class="text-gray-600">Photos</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-3xl font-bold text-gray-800">12</p>
+                  <p class="text-gray-600">Albums</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-3xl font-bold text-gray-800">2.4K</p>
+                  <p class="text-gray-600">Likes</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-3xl font-bold text-gray-800">45.8K</p>
+                  <p class="text-gray-600">Vues</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="bg-white rounded-xl shadow-md mb-8">
+            <div class="flex border-b border-gray-200">
+              <button
+                onclick="showProfileTab('photos')"
+                class="profile-tab active px-8 py-4 font-semibold text-purple-600 border-b-2 border-purple-600"
+              >
+                Photos
+              </button>
+              <button
+                onclick="showProfileTab('albums')"
+                class="profile-tab px-8 py-4 font-semibold text-gray-600 hover:text-gray-800"
+              >
+                Albums
+              </button>
+              <button
+                onclick="showProfileTab('likes')"
+                class="profile-tab px-8 py-4 font-semibold text-gray-600 hover:text-gray-800"
+              >
+                Likes
+              </button>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div id="profilePhotos" class="profile-tab-content">
+            <div
+              id="userPhotosGrid"
+              class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"
+            >
+              <!-- User photos will be loaded here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Section -->
+      <div id="statsSection" class="section hidden">
+        <h2 class="text-4xl font-bold text-gray-800 mb-8">Statistiques</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div class="bg-white rounded-xl p-6 shadow-md">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">
+              Vues par mois
+            </h3>
+            <canvas id="viewsChart" width="400" height="200"></canvas>
+          </div>
+
+          <div class="bg-white rounded-xl p-6 shadow-md">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">
+              Likes par catégorie
+            </h3>
+            <canvas id="likesChart" width="400" height="200"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl p-6 shadow-md">
+          <h3 class="text-xl font-semibold text-gray-800 mb-4">
+            Photos les plus populaires
+          </h3>
+          <div id="topPhotos" class="space-y-4">
+            <!-- Top photos will be loaded here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Section -->
+      <div id="settingsSection" class="section hidden">
+        <div class="max-w-4xl mx-auto">
+          <h2 class="text-4xl font-bold text-gray-800 mb-8">Paramètres</h2>
+
+          <div class="space-y-6">
+            <div class="bg-white rounded-xl p-6 shadow-md">
+              <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                Informations du compte
+              </h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-gray-700 font-semibold mb-2"
+                    >Nom d'utilisateur</label
+                  >
+                  <input
+                    type="text"
+                    value="johndoe"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <label class="block text-gray-700 font-semibold mb-2"
+                    >Email</label
+                  >
+                  <input
+                    type="email"
+                    value="john.doe@example.com"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <button
+                  class="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition ripple"
+                >
+                  Sauvegarder
+                </button>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-6 shadow-md">
+              <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                Confidentialité
+              </h3>
+              <div class="space-y-4">
+                <label class="flex items-center justify-between">
+                  <span class="text-gray-700">Profil public</span>
+                  <input
+                    type="checkbox"
+                    checked
+                    class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                  />
+                </label>
+                <label class="flex items-center justify-between">
+                  <span class="text-gray-700">Autoriser les commentaires</span>
+                  <input
+                    type="checkbox"
+                    checked
+                    class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                  />
+                </label>
+                <label class="flex items-center justify-between">
+                  <span class="text-gray-700">Notifications par email</span>
+                  <input
+                    type="checkbox"
+                    class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-6 shadow-md">
+              <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                Abonnement
+              </h3>
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-gray-700 font-semibold">Plan actuel: Pro</p>
+                  <p class="text-gray-500 text-sm">
+                    Renouvellement le 15 janvier 2026
+                  </p>
+                </div>
+                <button
+                  class="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition"
+                >
+                  Gérer l'abonnement
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Photo Detail Modal -->
+    <div id="photoModal" class="modal items-center justify-center p-4">
+      <div
+        class="modal-content bg-white rounded-2xl max-w-6xl w-full max-h-screen overflow-y-auto"
+      >
+        <div class="flex">
+          <div class="flex-1 bg-black flex items-center justify-center p-8">
+            <img
+              id="modalImage"
+              src=""
+              alt="Photo"
+              class="max-w-full max-h-screen object-contain"
+            />
+          </div>
+          <div class="w-96 p-8 overflow-y-auto">
+            <div class="flex justify-between items-start mb-6">
+              <h3 id="modalTitle" class="text-2xl font-bold text-gray-800"></h3>
+              <button
+                onclick="closePhotoModal()"
+                class="text-gray-500 hover:text-gray-700"
+              >
+                <i class="fas fa-times text-2xl"></i>
+              </button>
+            </div>
+
+            <div class="flex items-center space-x-3 mb-6">
+              <img
+                id="modalAuthorAvatar"
+                src=""
+                alt="Author"
+                class="w-12 h-12 rounded-full"
+              />
+              <div>
+                <p id="modalAuthorName" class="font-semibold text-gray-800"></p>
+                <p id="modalDate" class="text-sm text-gray-500"></p>
+              </div>
+            </div>
+
+            <div class="flex space-x-4 mb-6">
+              <button
+                onclick="likePhoto()"
+                class="flex-1 bg-red-50 text-red-600 px-4 py-3 rounded-lg font-semibold hover:bg-red-100 transition"
+              >
+                <i class="fas fa-heart mr-2"></i
+                ><span id="modalLikes">0</span> Likes
+              </button>
+              <button
+                class="flex-1 bg-gray-50 text-gray-600 px-4 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
+              >
+                <i class="fas fa-eye mr-2"></i
+                ><span id="modalViews">0</span> Vues
+              </button>
+            </div>
+
+            <div class="mb-6">
+              <p id="modalDescription" class="text-gray-600"></p>
+            </div>
+
+            <div class="mb-6">
+              <h4 class="font-semibold text-gray-800 mb-2">Tags</h4>
+              <div id="modalTags" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <div class="border-t border-gray-200 pt-6">
+              <h4 class="font-semibold text-gray-800 mb-4">
+                Commentaires (<span id="commentCount">0</span>)
+              </h4>
+
+              <div class="mb-4">
+                <textarea
+                  id="commentInput"
+                  rows="3"
+                  placeholder="Ajouter un commentaire..."
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                ></textarea>
+                <button
+                  onclick="addComment()"
+                  class="mt-2 bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition"
+                >
+                  Publier
+                </button>
+              </div>
+
+              <div id="commentsList" class="space-y-4 max-h-96 overflow-y-auto">
+                <!-- Comments will be loaded here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Album Modal -->
+    <div id="createAlbumModal" class="modal items-center justify-center p-4">
+      <div class="modal-content bg-white rounded-2xl max-w-2xl w-full p-8">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-2xl font-bold text-gray-800">
+            Créer un nouvel album
+          </h3>
+          <button
+            onclick="closeCreateAlbumModal()"
+            class="text-gray-500 hover:text-gray-700"
+          >
+            <i class="fas fa-times text-2xl"></i>
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-gray-700 font-semibold mb-2"
+              >Nom de l'album *</label
+            >
+            <input
+              type="text"
+              id="albumName"
+              placeholder="Mon nouvel album"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-gray-700 font-semibold mb-2"
+              >Description</label
+            >
+            <textarea
+              id="albumDescription"
+              rows="4"
+              placeholder="Décrivez votre album..."
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="albumPrivate"
+                class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+              />
+              <span class="text-gray-700"
+                >Album privé (uniquement pour Pro Users)</span
+              >
+            </label>
+          </div>
+
+          <div class="flex space-x-4 pt-4">
+            <button
+              onclick="createAlbum()"
+              class="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition ripple"
+            >
+              Créer l'album
+            </button>
+            <button
+              onclick="closeCreateAlbumModal()"
+              class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="notification">
+      <div class="bg-white rounded-lg shadow-xl p-4 w-80">
+        <div class="flex items-start space-x-3">
+          <div id="notifIcon" class="flex-shrink-0"></div>
+          <div class="flex-1">
+            <p id="notifTitle" class="font-semibold text-gray-800"></p>
+            <p id="notifMessage" class="text-sm text-gray-600"></p>
+          </div>
+          <button
+            onclick="hideNotification()"
+            class="text-gray-400 hover:text-gray-600"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Mock Data
+      const mockData = {
+        currentUser: {
+          id: 1,
+          username: "johndoe",
+          email: "john.doe@example.com",
+          userType: "ProUser",
+          monthlyUploadCount: 7,
+          monthlyUploadLimit: 10,
+        },
+        photos: [
+          {
+            id: 1,
+            title: "Coucher de soleil sur la montagne",
+            description:
+              "Un magnifique coucher de soleil capturé depuis le sommet",
+            imageUrl:
+              "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500",
+            author: {
+              name: "John Doe",
+              avatar:
+                "https://ui-avatars.com/api/?name=John+Doe&background=667eea&color=fff",
+            },
+            likes: 234,
+            views: 1540,
+            comments: 23,
+            tags: ["nature", "montagne", "sunset"],
+            date: "2024-12-15",
+            status: "published",
+          },
+          {
+            id: 2,
+            title: "Architecture moderne",
+            description: "Lignes épurées d'un bâtiment contemporain",
+            imageUrl:
+              "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=500",
+            author: {
+              name: "Jane Smith",
+              avatar:
+                "https://ui-avatars.com/api/?name=Jane+Smith&background=764ba2&color=fff",
+            },
+            likes: 189,
+            views: 980,
+            comments: 15,
+            tags: ["architecture", "urbain", "moderne"],
+            date: "2024-12-14",
+            status: "published",
+          },
+          {
+            id: 3,
+            title: "Portrait en noir et blanc",
+            description: "Expression captivante en monochrome",
+            imageUrl:
+              "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500",
+            author: {
+              name: "Mike Johnson",
+              avatar:
+                "https://ui-avatars.com/api/?name=Mike+Johnson&background=667eea&color=fff",
+            },
+            likes: 456,
+            views: 2340,
+            comments: 34,
+            tags: ["portrait", "noir et blanc", "photographie"],
+            date: "2024-12-13",
+            status: "published",
+          },
+          {
+            id: 4,
+            title: "Forêt mystérieuse",
+            description: "Brume matinale dans une forêt dense",
+            imageUrl:
+              "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=500",
+            author: {
+              name: "Sarah Wilson",
+              avatar:
+                "https://ui-avatars.com/api/?name=Sarah+Wilson&background=764ba2&color=fff",
+            },
+            likes: 312,
+            views: 1890,
+            comments: 28,
+            tags: ["nature", "forêt", "brume"],
+            date: "2024-12-12",
+            status: "published",
+          },
+        ],
+        albums: [
+          {
+            id: 1,
+            name: "Voyages 2024",
+            description: "Collection de mes aventures cette année",
+            coverImage:
+              "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=500",
+            photoCount: 45,
+            isPrivate: false,
+            createdAt: "2024-01-15",
+          },
+          {
+            id: 2,
+            name: "Portraits Studio",
+            description: "Séances photo en studio professionnel",
+            coverImage:
+              "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=500",
+            photoCount: 28,
+            isPrivate: true,
+            createdAt: "2024-03-20",
+          },
+          {
+            id: 3,
+            name: "Paysages urbains",
+            description: "Architecture et vie citadine",
+            coverImage:
+              "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=500",
+            photoCount: 62,
+            isPrivate: false,
+            createdAt: "2024-06-10",
+          },
+        ],
+        tags: [
+          { name: "nature", count: 234 },
+          { name: "portrait", count: 189 },
+          { name: "urbain", count: 156 },
+          { name: "paysage", count: 145 },
+          { name: "architecture", count: 123 },
+          { name: "noir et blanc", count: 98 },
+          { name: "voyage", count: 87 },
+          { name: "sunset", count: 76 },
+        ],
+        comments: [
+          {
+            id: 1,
+            author: "Alice Brown",
+            avatar:
+              "https://ui-avatars.com/api/?name=Alice+Brown&background=667eea&color=fff",
+            content: "Magnifique photo! Les couleurs sont incroyables.",
+            date: "2024-12-16 10:30",
+          },
+          {
+            id: 2,
+            author: "Bob Martin",
+            avatar:
+              "https://ui-avatars.com/api/?name=Bob+Martin&background=764ba2&color=fff",
+            content: "Quelle composition! Bravo pour ce cliché.",
+            date: "2024-12-16 14:20",
+          },
+        ],
+      };
+
+      // State Management
+      let currentSection = "home";
+      let selectedPhoto = null;
+      let uploadedFile = null;
+
+      // Initialize App
+      document.addEventListener("DOMContentLoaded", function () {
+        initializeApp();
+      });
+
+      function initializeApp() {
+        loadHomeData();
+        setupEventListeners();
+        updateStats();
+      }
+
+      function setupEventListeners() {
+        // Upload area drag and drop
+        const uploadArea = document.getElementById("uploadArea");
+        if (uploadArea) {
+          uploadArea.addEventListener("click", () =>
+            document.getElementById("fileInput").click()
+          );
+          uploadArea.addEventListener("dragover", handleDragOver);
+          uploadArea.addEventListener("dragleave", handleDragLeave);
+          uploadArea.addEventListener("drop", handleDrop);
+        }
+
+        // Search
+        document
+          .getElementById("searchInput")
+          ?.addEventListener("input", debounce(handleSearch, 300));
+      }
+
+      // Navigation
+      function showSection(section) {
+        // Hide all sections
+        document
+          .querySelectorAll(".section")
+          .forEach((s) => s.classList.add("hidden"));
+
+        // Show selected section
+        const sectionElement = document.getElementById(section + "Section");
+        if (sectionElement) {
+          sectionElement.classList.remove("hidden");
+          currentSection = section;
+
+          // Load section-specific data
+          switch (section) {
+            case "home":
+              loadHomeData();
+              break;
+            case "explore":
+              loadExploreData();
+              break;
+            case "albums":
+              loadAlbumsData();
+              break;
+            case "profile":
+              loadProfileData();
+              break;
+            case "stats":
+              loadStatsData();
+              break;
+          }
+        }
+
+        // Close menus
+        document.getElementById("userMenu")?.classList.add("hidden");
+      }
+
+      // Load Data Functions
+      function loadHomeData() {
+        updateStats();
+        loadFeaturedPhotos();
+        loadRecentAlbums();
+      }
+
+      function updateStats() {
+        document.getElementById("totalPhotos").textContent =
+          mockData.photos.length;
+        document.getElementById("totalAlbums").textContent =
+          mockData.albums.length;
+
+        const totalLikes = mockData.photos.reduce(
+          (sum, photo) => sum + photo.likes,
+          0
+        );
+        document.getElementById("totalLikes").textContent = totalLikes;
+
+        const totalViews = mockData.photos.reduce(
+          (sum, photo) => sum + photo.views,
+          0
+        );
+        document.getElementById("totalViews").textContent =
+          totalViews.toLocaleString();
+      }
+
+      function loadFeaturedPhotos() {
+        const container = document.getElementById("featuredPhotos");
+        if (!container) return;
+
+        container.innerHTML = mockData.photos
+          .slice(0, 4)
+          .map((photo) => createPhotoCard(photo))
+          .join("");
+      }
+
+      function loadRecentAlbums() {
+        const container = document.getElementById("recentAlbums");
+        if (!container) return;
+
+        container.innerHTML = mockData.albums
+          .map((album) => createAlbumCard(album))
+          .join("");
+      }
+
+      function loadExploreData() {
+        loadPopularTags();
+        loadExplorePhotos();
+      }
+
+      function loadPopularTags() {
+        const container = document.getElementById("popularTags");
+        if (!container) return;
+
+        container.innerHTML = mockData.tags
+          .map(
+            (tag) => `
+                <button onclick="filterByTag('${tag.name}')" class="tag-chip px-4 py-2 bg-white border border-gray-300 rounded-full text-gray-700 font-medium hover:bg-purple-50 hover:border-purple-300">
+                    ${tag.name} <span class="text-gray-400 ml-1">(${tag.count})</span>
+                </button>
+            `
+          )
+          .join("");
+      }
+
+      function loadExplorePhotos() {
+        const container = document.getElementById("explorePhotos");
+        if (!container) return;
+
+        container.innerHTML = mockData.photos
+          .map((photo) => createPhotoCard(photo))
+          .join("");
+      }
+
+      function loadAlbumsData() {
+        const container = document.getElementById("albumsGrid");
+        if (!container) return;
+
+        container.innerHTML = mockData.albums
+          .map((album) => createAlbumCard(album))
+          .join("");
+      }
+
+      function loadProfileData() {
+        const container = document.getElementById("userPhotosGrid");
+        if (!container) return;
+
+        container.innerHTML = mockData.photos
+          .map((photo) => createPhotoCard(photo))
+          .join("");
+      }
+
+      function loadStatsData() {
+        // This would typically load chart data
+        showNotification(
+          "Statistiques chargées",
+          "Vos statistiques détaillées sont maintenant disponibles",
+          "success"
+        );
+      }
+
+      // Create Card Components
+      function createPhotoCard(photo) {
+        return `
+                <div class="photo-card bg-white rounded-xl shadow-md overflow-hidden cursor-pointer" onclick="openPhotoModal(${
+                  photo.id
+                })">
+                    <div class="relative h-64">
+                        <img src="${photo.imageUrl}" alt="${
+          photo.title
+        }" class="w-full h-full object-cover">
+                        <div class="absolute top-2 right-2">
+                            <span class="bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-xs font-medium">
+                                <i class="fas fa-eye mr-1"></i>${photo.views}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2 truncate">${
+                          photo.title
+                        }</h3>
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2">
+                                <img src="${photo.author.avatar}" alt="${
+          photo.author.name
+        }" class="w-8 h-8 rounded-full">
+                                <span class="text-sm text-gray-600">${
+                                  photo.author.name
+                                }</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-500">
+                            <span><i class="fas fa-heart text-red-500 mr-1"></i>${
+                              photo.likes
+                            }</span>
+                            <span><i class="fas fa-comment mr-1"></i>${
+                              photo.comments
+                            }</span>
+                            <span class="text-xs">${photo.date}</span>
+                        </div>
+                        <div class="mt-3 flex flex-wrap gap-1">
+                            ${photo.tags
+                              .slice(0, 2)
+                              .map(
+                                (tag) => `
+                                <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">${tag}</span>
+                            `
+                              )
+                              .join("")}
+                        </div>
+                    </div>
+                </div>
+            `;
+      }
+
+      function createAlbumCard(album) {
+        return `
+                <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition cursor-pointer">
+                    <div class="relative h-48">
+                        <img src="${album.coverImage}" alt="${
+          album.name
+        }" class="w-full h-full object-cover">
+                        ${
+                          album.isPrivate
+                            ? '<div class="absolute top-2 right-2"><span class="bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-xs font-medium"><i class="fas fa-lock mr-1"></i>Privé</span></div>'
+                            : ""
+                        }
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4">
+                            <h3 class="text-white text-xl font-bold">${
+                              album.name
+                            }</h3>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-600 text-sm mb-3">${
+                          album.description
+                        }</p>
+                        <div class="flex items-center justify-between text-sm text-gray-500">
+                            <span><i class="fas fa-images mr-2"></i>${
+                              album.photoCount
+                            } photos</span>
+                            <span>${album.createdAt}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+      }
+
+      // Modal Functions
+      function openPhotoModal(photoId) {
+        const photo = mockData.photos.find((p) => p.id === photoId);
+        if (!photo) return;
+
+        selectedPhoto = photo;
+        const modal = document.getElementById("photoModal");
+
+        document.getElementById("modalImage").src = photo.imageUrl;
+        document.getElementById("modalTitle").textContent = photo.title;
+        document.getElementById("modalDescription").textContent =
+          photo.description;
+        document.getElementById("modalAuthorAvatar").src = photo.author.avatar;
+        document.getElementById("modalAuthorName").textContent =
+          photo.author.name;
+        document.getElementById("modalDate").textContent = photo.date;
+        document.getElementById("modalLikes").textContent = photo.likes;
+        document.getElementById("modalViews").textContent = photo.views;
+        document.getElementById("commentCount").textContent = photo.comments;
+
+        // Tags
+        document.getElementById("modalTags").innerHTML = photo.tags
+          .map(
+            (tag) => `
+                <span class="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">${tag}</span>
+            `
+          )
+          .join("");
+
+        // Comments
+        loadComments();
+
+        modal.classList.add("active");
+      }
+
+      function closePhotoModal() {
+        document.getElementById("photoModal").classList.remove("active");
+        selectedPhoto = null;
+      }
+
+      function openCreateAlbumModal() {
+        document.getElementById("createAlbumModal").classList.add("active");
+      }
+
+      function closeCreateAlbumModal() {
+        document.getElementById("createAlbumModal").classList.remove("active");
+      }
+
+      function loadComments() {
+        const container = document.getElementById("commentsList");
+        container.innerHTML = mockData.comments
+          .map(
+            (comment) => `
+                <div class="flex space-x-3">
+                    <img src="${comment.avatar}" alt="${comment.author}" class="w-10 h-10 rounded-full flex-shrink-0">
+                    <div class="flex-1">
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <p class="font-semibold text-gray-800 text-sm">${comment.author}</p>
+                            <p class="text-gray-600 text-sm mt-1">${comment.content}</p>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">${comment.date}</p>
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+      }
+
+      // Upload Functions
+      function handleDragOver(e) {
+        e.preventDefault();
+        e.currentTarget.classList.add("dragover");
+      }
+
+      function handleDragLeave(e) {
+        e.currentTarget.classList.remove("dragover");
+      }
+
+      function handleDrop(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove("dragover");
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          processFile(files[0]);
+        }
+      }
+
+      function handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (file) {
+          processFile(file);
+        }
+      }
+
+      function processFile(file) {
+        // Validate file
+        if (!file.type.match("image/(jpeg|png|gif)")) {
+          showNotification("Erreur", "Format de fichier non supporté", "error");
+          return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+          showNotification(
+            "Erreur",
+            "La taille du fichier ne doit pas dépasser 10MB",
+            "error"
+          );
+          return;
+        }
+
+        uploadedFile = file;
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          document.getElementById("previewImage").src = e.target.result;
+          document.getElementById("fileName").textContent = file.name;
+          document.getElementById("fileSize").textContent =
+            (file.size / 1024 / 1024).toFixed(2) + " MB";
+
+          // Get image dimensions
+          const img = new Image();
+          img.onload = function () {
+            document.getElementById("fileDimensions").textContent =
+              this.width + " x " + this.height + " px";
+          };
+          img.src = e.target.result;
+
+          document.getElementById("uploadArea").classList.add("hidden");
+          document.getElementById("photoForm").classList.remove("hidden");
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function uploadPhoto() {
+        const title = document.getElementById("photoTitle").value.trim();
+        const description = document
+          .getElementById("photoDescription")
+          .value.trim();
+        const tags = document.getElementById("photoTags").value.trim();
+
+        if (!title) {
+          showNotification("Erreur", "Le titre est obligatoire", "error");
+          return;
+        }
+
+        if (!tags) {
+          showNotification(
+            "Erreur",
+            "Au moins un tag est obligatoire",
+            "error"
+          );
+          return;
+        }
+
+        // Check quota
+        if (
+          mockData.currentUser.monthlyUploadCount >=
+          mockData.currentUser.monthlyUploadLimit
+        ) {
+          showNotification(
+            "Erreur",
+            "Quota mensuel atteint. Passez à Pro pour des uploads illimités!",
+            "error"
+          );
+          return;
+        }
+
+        // Simulate upload
+        showNotification(
+          "Succès",
+          "Votre photo a été téléchargée avec succès!",
+          "success"
+        );
+
+        // Update quota
+        mockData.currentUser.monthlyUploadCount++;
+        updateQuota();
+
+        // Reset form
+        cancelUpload();
+
+        // Redirect to photos
+        setTimeout(() => showSection("myPhotos"), 1500);
+      }
+
+      function cancelUpload() {
+        document.getElementById("uploadArea").classList.remove("hidden");
+        document.getElementById("photoForm").classList.add("hidden");
+        document.getElementById("photoTitle").value = "";
+        document.getElementById("photoDescription").value = "";
+        document.getElementById("photoTags").value = "";
+        uploadedFile = null;
+      }
+
+      function updateQuota() {
+        const percentage =
+          (mockData.currentUser.monthlyUploadCount /
+            mockData.currentUser.monthlyUploadLimit) *
+          100;
+        document.getElementById("quotaBar").style.width = percentage + "%";
+        document.getElementById(
+          "quotaText"
+        ).textContent = `${mockData.currentUser.monthlyUploadCount} / ${mockData.currentUser.monthlyUploadLimit} utilisées ce mois`;
+      }
+
+      // Action Functions
+      function likePhoto() {
+        if (selectedPhoto) {
+          selectedPhoto.likes++;
+          document.getElementById("modalLikes").textContent =
+            selectedPhoto.likes;
+          showNotification("Succès", "Photo likée!", "success");
+        }
+      }
+
+      function addComment() {
+        const content = document.getElementById("commentInput").value.trim();
+
+        if (!content) {
+          showNotification(
+            "Erreur",
+            "Le commentaire ne peut pas être vide",
+            "error"
+          );
+          return;
+        }
+
+        if (content.length < 2 || content.length > 500) {
+          showNotification(
+            "Erreur",
+            "Le commentaire doit contenir entre 2 et 500 caractères",
+            "error"
+          );
+          return;
+        }
+
+        const newComment = {
+          id: mockData.comments.length + 1,
+          author: mockData.currentUser.username,
+          avatar:
+            "https://ui-avatars.com/api/?name=John+Doe&background=667eea&color=fff",
+          content: content,
+          date: new Date().toLocaleString("fr-FR"),
+        };
+
+        mockData.comments.unshift(newComment);
+
+        if (selectedPhoto) {
+          selectedPhoto.comments++;
+          document.getElementById("commentCount").textContent =
+            selectedPhoto.comments;
+        }
+
+        loadComments();
+        document.getElementById("commentInput").value = "";
+        showNotification("Succès", "Commentaire ajouté!", "success");
+      }
+
+      function createAlbum() {
+        const name = document.getElementById("albumName").value.trim();
+        const description = document
+          .getElementById("albumDescription")
+          .value.trim();
+        const isPrivate = document.getElementById("albumPrivate").checked;
+
+        if (!name) {
+          showNotification(
+            "Erreur",
+            "Le nom de l'album est obligatoire",
+            "error"
+          );
+          return;
+        }
+
+        if (isPrivate && mockData.currentUser.userType === "BasicUser") {
+          showNotification(
+            "Erreur",
+            "Les albums privés sont réservés aux Pro Users",
+            "error"
+          );
+          return;
+        }
+
+        const newAlbum = {
+          id: mockData.albums.length + 1,
+          name: name,
+          description: description,
+          coverImage:
+            "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500",
+          photoCount: 0,
+          isPrivate: isPrivate,
+          createdAt: new Date().toISOString().split("T")[0],
+        };
+
+        mockData.albums.unshift(newAlbum);
+
+        closeCreateAlbumModal();
+        showNotification("Succès", "Album créé avec succès!", "success");
+
+        document.getElementById("albumName").value = "";
+        document.getElementById("albumDescription").value = "";
+        document.getElementById("albumPrivate").checked = false;
+
+        loadAlbumsData();
+      }
+
+      // Filter Functions
+      function filterPhotos() {
+        const category = document.getElementById("filterCategory")?.value;
+        const sortBy = document.getElementById("sortBy")?.value;
+
+        showNotification(
+          "Info",
+          `Filtrage par ${category}, tri par ${sortBy}`,
+          "info"
+        );
+        // Implement actual filtering logic here
+      }
+
+      function filterByTag(tagName) {
+        showNotification("Info", `Filtrage par tag: ${tagName}`, "info");
+        // Implement actual filtering logic here
+      }
+
+      function loadMorePhotos() {
+        showNotification("Info", "Chargement de plus de photos...", "info");
+        // Implement pagination logic here
+      }
+
+      // Search Function
+      function handleSearch(e) {
+        const query = e.target.value.trim();
+        if (query.length > 2) {
+          showNotification("Info", `Recherche: ${query}`, "info");
+          // Implement actual search logic here
+        }
+      }
+
+      // UI Toggle Functions
+      function toggleUserMenu() {
+        const menu = document.getElementById("userMenu");
+        menu.classList.toggle("hidden");
+      }
+
+      function toggleNotifications() {
+        showNotification("Info", "Vous avez 3 nouvelles notifications", "info");
+      }
+
+      function showProfileTab(tab) {
+        // Update tab buttons
+        document.querySelectorAll(".profile-tab").forEach((btn) => {
+          btn.classList.remove(
+            "active",
+            "text-purple-600",
+            "border-b-2",
+            "border-purple-600"
+          );
+          btn.classList.add("text-gray-600");
+        });
+
+        event.target.classList.add(
+          "active",
+          "text-purple-600",
+          "border-b-2",
+          "border-purple-600"
+        );
+        event.target.classList.remove("text-gray-600");
+
+        // Update content (implement based on tab)
+        showNotification("Info", `Onglet ${tab} affiché`, "info");
+      }
+
+      function editProfile() {
+        showNotification("Info", "Fonctionnalité d'édition du profil", "info");
+      }
+
+      function logout() {
+        showNotification("Info", "Déconnexion...", "info");
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }
+
+      // Notification System
+      function showNotification(title, message, type = "info") {
+        const notification = document.getElementById("notification");
+        const iconMap = {
+          success:
+            '<i class="fas fa-check-circle text-green-500 text-2xl"></i>',
+          error: '<i class="fas fa-times-circle text-red-500 text-2xl"></i>',
+          info: '<i class="fas fa-info-circle text-blue-500 text-2xl"></i>',
+          warning:
+            '<i class="fas fa-exclamation-triangle text-yellow-500 text-2xl"></i>',
+        };
+
+        document.getElementById("notifIcon").innerHTML = iconMap[type];
+        document.getElementById("notifTitle").textContent = title;
+        document.getElementById("notifMessage").textContent = message;
+
+        notification.classList.add("show");
+
+        setTimeout(() => {
+          hideNotification();
+        }, 4000);
+      }
+
+      function hideNotification() {
+        document.getElementById("notification").classList.remove("show");
+      }
+
+      // Utility Functions
+      function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
+      }
+
+      // Close modals on outside click
+      document.addEventListener("click", function (e) {
+        if (e.target.classList.contains("modal")) {
+          closePhotoModal();
+          closeCreateAlbumModal();
+        }
+
+        // Close user menu on outside click
+        if (
+          !e.target.closest("#userMenu") &&
+          !e.target.closest('button[onclick="toggleUserMenu()"]')
+        ) {
+          document.getElementById("userMenu")?.classList.add("hidden");
+        }
+      });
+
+      // Initialize quota on load
+      updateQuota();
+
+      // Load albums into upload form
+      function loadAlbumsForUpload() {
+        const select = document.getElementById("photoAlbum");
+        if (select) {
+          select.innerHTML =
+            '<option value="">Aucun album</option>' +
+            mockData.albums
+              .map(
+                (album) => `<option value="${album.id}">${album.name}</option>`
+              )
+              .join("");
+        }
+      }
+
+      loadAlbumsForUpload();
+    </script>
+  </body>
+</html>
