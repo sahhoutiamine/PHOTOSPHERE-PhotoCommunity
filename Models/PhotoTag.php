@@ -5,13 +5,11 @@ class PhotoTag
 {
     private int $photoId;
     private int $tagId;
-    private \DateTime $createdAt;
     
     public function __construct(int $photoId, int $tagId)
     {
         $this->photoId = $photoId;
         $this->tagId = $tagId;
-        $this->createdAt = new \DateTime();
     }
     
     // Getters

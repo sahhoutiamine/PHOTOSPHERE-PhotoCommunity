@@ -33,28 +33,5 @@ class BasicUser extends User
         return $this->currentMonthUploadCount;
     }
     
-    public function canUpload(): bool
-    {
-        $this->checkMonthReset();
-        return $this->currentMonthUploadCount < self::MONTHLY_UPLOAD_LIMIT;
-    }
-    
-    public function incrementUpload(): void
-    {
-        $this->checkMonthReset();
-        if (!$this->canUpload()) {
-            throw new \Exception("Monthly upload limit reached");
-        }
-        $this->currentMonthUploadCount++;
-        $this->incrementUploadCount();
-    }
-    
-    private function checkMonthReset(): void
-    {
-        $now = new \DateTime();
-        if ($now->format('Y-m') > $this->currentMonthReset->format('Y-m')) {
-            $this->currentMonthUploadCount = 0;
-            $this->currentMonthReset = new \DateTime('first day of this month');
-        }
-    }
+   
 }

@@ -7,8 +7,6 @@ abstract class User
     protected string $username;
     protected string $email;
     protected string $passwordHash;
-    protected \DateTime $createdAt;
-    protected ?\DateTime $lastLogin = null;
     protected ?string $bio = null;
     protected ?string $profilePicture = null;
     protected int $uploadCount = 0;
@@ -23,40 +21,18 @@ abstract class User
         $this->setUsername($username);
         $this->setEmail($email);
         $this->setPassword($password);
-        $this->createdAt = new \DateTime();
     }
     
     // Getters
     public function getId(): int { return $this->id; }
     public function getUsername(): string { return $this->username; }
     public function getEmail(): string { return $this->email; }
-    public function getCreatedAt(): \DateTime { return $this->createdAt; }
-    public function getLastLogin(): ?\DateTime { return $this->lastLogin; }
     public function getBio(): ?string { return $this->bio; }
     public function getProfilePicture(): ?string { return $this->profilePicture; }
     public function getUploadCount(): int { return $this->uploadCount; }
     public function getLevel(): ?string { return $this->level; }
     public function isSuper(): bool { return $this->isSuper; }
     
-    // Setters with validation
-    public function setUsername(string $username): void
-    {
-        if (strlen($username) < 3 || strlen($username) > 50) {
-            throw new \InvalidArgumentException("Username must be between 3 and 50 characters");
-        }
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
-            throw new \InvalidArgumentException("Username can only contain letters, numbers and underscores");
-        }
-        $this->username = $username;
-    }
-    
-    public function setEmail(string $email): void
-    {
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new \InvalidArgumentException("Invalid email format");
-        }
-        $this->email = $email;
-    }
     
     public function setPassword(string $password): void
     {

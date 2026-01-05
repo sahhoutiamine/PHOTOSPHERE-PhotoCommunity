@@ -3,8 +3,6 @@
 
 class ProUser extends User
 {
-    private ?\DateTime $subscriptionStart = null;
-    private ?\DateTime $subscriptionEnd = null;
     
     public function __construct(
         string $username,
@@ -31,16 +29,7 @@ class ProUser extends User
         $this->subscriptionEnd = $end;
     }
     
-    public function isSubscriptionActive(): bool
-    {
-        if ($this->subscriptionStart === null) {
-            return false;
-        }
-        
-        $now = new \DateTime();
-        return $now >= $this->subscriptionStart && 
-               ($this->subscriptionEnd === null || $now <= $this->subscriptionEnd);
-    }
+    
     
     public function getSubscriptionStart(): ?\DateTime
     {

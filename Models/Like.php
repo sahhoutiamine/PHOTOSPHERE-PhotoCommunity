@@ -5,7 +5,6 @@ class Like
 {
     private int $userId;
     private int $photoId;
-    private \DateTime $createdAt;
     
     // Associations
     private ?User $user = null;
@@ -15,13 +14,11 @@ class Like
     {
         $this->userId = $userId;
         $this->photoId = $photoId;
-        $this->createdAt = new \DateTime();
     }
     
     // Getters
     public function getUserId(): int { return $this->userId; }
     public function getPhotoId(): int { return $this->photoId; }
-    public function getCreatedAt(): \DateTime { return $this->createdAt; }
     
     public function setUser(User $user): void
     {
@@ -43,14 +40,5 @@ class Like
         return $this->photo;
     }
     
-    public static function create(User $user, Photo $photo): self
-    {
-        
-        
-        $like = new self($user->getId(), $photo->getId());
-        $like->setUser($user);
-        $like->setPhoto($photo);
-        
-        return $like;
-    }
+    
 }
