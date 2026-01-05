@@ -1,6 +1,5 @@
 <?php
 // Database.php
-namespace PhotoSphere\Core;
 
 use PDO;
 use PDOException;
