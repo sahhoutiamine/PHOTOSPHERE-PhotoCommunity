@@ -1,9 +1,6 @@
 <?php
 // Database.php
 
-use PDO;
-use PDOException;
-
 class Database
 {
     private static $instance = null;
@@ -28,7 +25,7 @@ class Database
                 ]
             );
         } catch (PDOException $e) {
-            throw new \Exception("Database connection failed: " . $e->getMessage());
+            throw new Exception("Database connection failed: " . $e->getMessage());
         }
     }
     
@@ -45,24 +42,5 @@ class Database
         return $this->connection;
     }
     
-    public function beginTransaction()
-    {
-        return $this->connection->beginTransaction();
-    }
-    
-    public function commit()
-    {
-        return $this->connection->commit();
-    }
-    
-    public function rollback()
-    {
-        return $this->connection->rollBack();
-    }
-    
-    public function lastInsertId()
-    {
-        return $this->connection->lastInsertId();
-    }
 }
 ?>
