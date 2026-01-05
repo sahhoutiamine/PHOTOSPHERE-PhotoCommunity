@@ -1,6 +1,5 @@
 <?php
 // PhotoTag.php
-namespace PhotoSphere\Models;
 
 class PhotoTag
 {
