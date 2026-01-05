@@ -23,7 +23,7 @@ class ProUser extends User
     
     public function getMonthlyUploadLimit(): ?int
     {
-        return null; // Unlimited for Pro users
+        return null; 
     }
     
     public function setSubscription(\DateTime $start, \DateTime $end): void

@@ -4,7 +4,7 @@ namespace PhotoSphere\Models;
 
 class Moderator extends User
 {
-    private string $moderatorLevel; // junior, senior, lead
+    private string $moderatorLevel; 
     private array $moderationLog = [];
     
     public function __construct(
@@ -25,7 +25,7 @@ class Moderator extends User
     
     public function getMonthlyUploadLimit(): ?int
     {
-        return null; // Unlimited for moderators
+        return null; 
     }
     
     public function setModeratorLevel(string $level): void
@@ -44,18 +44,15 @@ class Moderator extends User
     
     public function canDeleteComment(Comment $comment, User $photoOwner): bool
     {
-        // Moderators can delete any comment
         return true;
     }
     
     public function canSuspendUser(User $user): bool
     {
-        // Junior moderators can only suspend BasicUsers
         if ($this->moderatorLevel === 'junior') {
             return $user instanceof BasicUser;
         }
         
-        // Senior and Lead moderators can suspend BasicUser and ProUser
         if ($this->moderatorLevel === 'senior' || $this->moderatorLevel === 'lead') {
             return $user instanceof BasicUser || $user instanceof ProUser;
         }
