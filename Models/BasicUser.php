@@ -5,7 +5,6 @@ class BasicUser extends User
 {
     private const MONTHLY_UPLOAD_LIMIT = 10;
     private int $currentMonthUploadCount = 0;
-    private \DateTime $currentMonthReset;
     
     public function __construct(
         string $username,

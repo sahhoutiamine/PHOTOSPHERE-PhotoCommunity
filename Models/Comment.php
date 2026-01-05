@@ -6,8 +6,6 @@ class Comment
     private int $id;
     private string $content;
     private bool $isArchive = false;
-    private \DateTime $createdAt;
-    private \DateTime $updatedAt;
     private int $userId;
     private int $photoId;
     private ?int $parentId = null;
@@ -22,12 +20,10 @@ class Comment
         int $photoId,
         ?int $parentId = null
     ) {
-        $this->setContent($content);
+        $this->content = $content;
         $this->userId = $userId;
         $this->photoId = $photoId;
         $this->parentId = $parentId;
-        $this->createdAt = new \DateTime();
-        $this->updatedAt = new \DateTime();
     }
     
     // Getters

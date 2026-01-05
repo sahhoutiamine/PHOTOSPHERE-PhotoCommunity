@@ -15,7 +15,6 @@ class Photo
     private int $userId;
     private ?int $albumId = null;
     
-    // Associations
     private ?User $owner = null;
     private ?Album $album = null;
     private array $tags = [];
