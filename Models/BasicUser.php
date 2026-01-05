@@ -1,36 +1,22 @@
 <?php
-// BasicUser.php
+require_once __DIR__ . '/User.php';
 
-class BasicUser extends User
-{
+class BasicUser extends User {
     private const MONTHLY_UPLOAD_LIMIT = 10;
-    private int $currentMonthUploadCount = 0;
     
-    public function __construct(
-        string $username,
-        string $email,
-        string $password
-    ) {
-        parent::__construct($username, $email, $password);
-        $this->currentMonthReset = new \DateTime('first day of this month');
-        $this->level = 'basic';
+    public function canUploadPhoto(): bool {
+        return $this->uploadCount < self::MONTHLY_UPLOAD_LIMIT;
     }
     
-    public function canCreatePrivateAlbum(): bool
-    {
+    public function canCreatePrivateAlbum(): bool {
         return false;
     }
     
-    public function getMonthlyUploadLimit(): ?int
-    {
+    public function getUploadLimit(): ?int {
         return self::MONTHLY_UPLOAD_LIMIT;
     }
     
-    public function getCurrentMonthUploadCount(): int
-    {
-        $this->checkMonthReset();
-        return $this->currentMonthUploadCount;
+    public function getRemainingUploads(): int {
+        return max(0, self::MONTHLY_UPLOAD_LIMIT - $this->uploadCount);
     }
-    
-   
 }

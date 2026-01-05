@@ -1,43 +1,23 @@
 <?php
-// ProUser.php
+require_once __DIR__ . '/User.php';
 
-class ProUser extends User
-{
-    
-    public function __construct(
-        string $username,
-        string $email,
-        string $password
-    ) {
-        parent::__construct($username, $email, $password);
-        $this->level = 'pro';
+class ProUser extends User {
+    public function canUploadPhoto(): bool {
+        return true; 
     }
     
-    public function canCreatePrivateAlbum(): bool
-    {
-        return $this->isSubscriptionActive();
+    public function canCreatePrivateAlbum(): bool {
+        return true;
     }
     
-    public function getMonthlyUploadLimit(): ?int
-    {
+    public function getUploadLimit(): ?int {
         return null; 
     }
     
-    public function setSubscription(\DateTime $start, \DateTime $end): void
-    {
-        $this->subscriptionStart = $start;
-        $this->subscriptionEnd = $end;
-    }
-    
-    
-    
-    public function getSubscriptionStart(): ?\DateTime
-    {
-        return $this->subscriptionStart;
-    }
-    
-    public function getSubscriptionEnd(): ?\DateTime
-    {
-        return $this->subscriptionEnd;
+    public function hasActiveSubscription(): bool {
+        if (!$this->subscriptionEnd) {
+            return false;
+        }
+        return strtotime($this->subscriptionEnd) > time();
     }
 }

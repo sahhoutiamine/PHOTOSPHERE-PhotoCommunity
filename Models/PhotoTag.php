@@ -12,7 +12,6 @@ class PhotoTag
         $this->tagId = $tagId;
     }
     
-    // Getters
     public function getPhotoId(): int { return $this->photoId; }
     public function getTagId(): int { return $this->tagId; }
     public function getCreatedAt(): \DateTime { return $this->createdAt; }

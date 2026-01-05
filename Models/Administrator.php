@@ -1,35 +1,20 @@
 <?php
-// Administrator.php
+require_once __DIR__ . '/User.php';
 
-class Administrator extends User
-{
-    public function __construct(
-        string $username,
-        string $email,
-        string $password
-    ) {
-        parent::__construct($username, $email, $password);
-        $this->level = 'administrator';
-    }
-    
-    public function canCreatePrivateAlbum(): bool
-    {
+class Administrator extends User {
+    public function canUploadPhoto(): bool {
         return true;
     }
     
-    public function getMonthlyUploadLimit(): ?int
-    {
-        return null; 
+    public function canCreatePrivateAlbum(): bool {
+        return true;
     }
     
-    public function canManageUser(User $user): bool
-    {
-        
-        return $user->getId() !== $this->id;
+    public function getUploadLimit(): ?int {
+        return null;
     }
     
-    public function canModifySystemSettings(): bool
-    {
-        return $this->isSuper();
+    public function hasFullAccess(): bool {
+        return true;
     }
 }
