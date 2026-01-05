@@ -1,6 +1,5 @@
 <?php
 // BasicUser.php
-namespace PhotoSphere\Models;
 
 class BasicUser extends User
 {

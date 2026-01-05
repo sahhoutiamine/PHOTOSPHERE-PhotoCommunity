@@ -1,6 +1,5 @@
 <?php
 // Photo.php
-namespace PhotoSphere\Models;
 
 class Photo
 {

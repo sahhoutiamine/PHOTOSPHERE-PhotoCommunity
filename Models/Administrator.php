@@ -1,6 +1,5 @@
 <?php
 // Administrator.php
-namespace PhotoSphere\Models;
 
 class Administrator extends User
 {

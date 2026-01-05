@@ -1,6 +1,5 @@
 <?php
 // Moderator.php
-namespace PhotoSphere\Models;
 
 class Moderator extends User
 {

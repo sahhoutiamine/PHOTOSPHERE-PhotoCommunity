@@ -1,6 +1,5 @@
 <?php
 // ProUser.php
-namespace PhotoSphere\Models;
 
 class ProUser extends User
 {
