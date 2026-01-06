@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../Interfaces/Repositories.php';
-require_once __DIR__ . '/../Factories/UserFactory.php';
+require_once __DIR__ . '/../Interfaces/UserRepositoryInterface.php';
+require_once __DIR__ . '/../Services/UserFactory.php';
 
 class UserRepository implements UserRepositoryInterface {
     private PDO $db;
@@ -101,5 +101,16 @@ class UserRepository implements UserRepositoryInterface {
     public function updateLastLogin(int $userId): bool {
         $stmt = $this->db->prepare("UPDATE users SET lastLogin = NOW() WHERE id = ?");
         return $stmt->execute([$userId]);
+    }
+
+     public function authenticate(string $email, string $password): ?User {
+        $user = $this->findByEmail($email);
+        
+        if ($user && $user->verifyPassword($password)) {
+            $this->updateLastLogin($user->getId());
+            return $user;
+        }
+        
+        return null;
     }
 }

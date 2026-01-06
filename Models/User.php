@@ -60,6 +60,13 @@ abstract class User {
     public function setRole(string $role): void { $this->role = $role; }
     public function setModeratorLevel(?string $moderatorLevel): void { $this->moderatorLevel = $moderatorLevel; }
     public function incrementUploadCount(): void { $this->uploadCount++; }
+    public function verifyPassword(string $password): bool {
+        return password_verify($password, $this->password);
+    }
+    
+    public function setPassword(string $password): void { 
+        $this->password = password_hash($password, PASSWORD_BCRYPT); 
+    }
     
     abstract public function canUploadPhoto(): bool;
     abstract public function canCreatePrivateAlbum(): bool;
