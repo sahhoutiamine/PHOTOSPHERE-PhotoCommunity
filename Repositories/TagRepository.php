@@ -25,7 +25,18 @@ class TagRepository {
         return $tags;
     }
     public function searchTags(string $query, int $limit = 20): array {
-
+        $sql = "SELECT * FROM tags WHERE slug LIKE :query ORDER BY photoCount DESC LIMIT :limit";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':query', '%' . strtolower($query) . '%', PDO::PARAM_STR);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        $tags = [];
+        while ($data = $stmt->fetch()) {
+            $tags[] = new Tag($data);
+        }
+        
+        return $tags;
     }
     public function getPhotosByTag(string $tagName, int $page = 1, int $perPage = 30): array {
 
