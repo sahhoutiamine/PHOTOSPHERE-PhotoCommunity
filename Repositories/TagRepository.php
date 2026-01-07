@@ -39,16 +39,60 @@ class TagRepository {
         return $tags;
     }
     public function getPhotosByTag(string $tagName, int $page = 1, int $perPage = 30): array {
-
+        $offset = ($page - 1) * $perPage;
+        $normalizedTag = Tag::normalizeSlug($tagName);
+        
+        $sql = "SELECT p.* FROM photos p
+                INNER JOIN photo_tags pt ON p.id = pt.photoId
+                INNER JOIN tags t ON pt.tagId = t.id
+                WHERE t.slug = :slug AND p.state = 'published'
+                ORDER BY p.publishedAt DESC
+                LIMIT :limit OFFSET :offset";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':slug', $normalizedTag, PDO::PARAM_STR);
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        $photos = [];
+        while ($data = $stmt->fetch()) {
+            $photos[] = new Photo($data);
+        }
+        
+        return $photos;
     }
-    public function  getTagStats(string $tagName): array {
-
+    
+    public function getTagStats(string $tagName): array {
+        $normalizedTag = Tag::normalizeSlug($tagName);
+        
+        $sql = "SELECT t.*, 
+                COUNT(DISTINCT pt.photoId) as totalPhotos,
+                COUNT(DISTINCT p.userId) as totalUsers
+                FROM tags t
+                LEFT JOIN photo_tags pt ON t.id = pt.tagId
+                LEFT JOIN photos p ON pt.photoId = p.id
+                WHERE t.slug = :slug
+                GROUP BY t.id";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':slug', $normalizedTag, PDO::PARAM_STR);
+        $stmt->execute();
+        
+        $data = $stmt->fetch();
+        
+        if (!$data) {
+            return [];
+        }
+        
+        return [
+            'tag' => new Tag($data),
+            'totalPhotos' => (int)$data['totalPhotos'],
+            'totalUsers' => (int)$data['totalUsers']
+        ];
     }
     public function mergeTags(string $fromTag, string $toTag): bool {
 
     }
 
 }
-
-
-?>

@@ -7,4 +7,3 @@ interface Commentable {
     public function getCommentCount(): int;
 }
 
-?>

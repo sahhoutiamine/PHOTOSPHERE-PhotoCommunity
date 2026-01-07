@@ -8,4 +8,4 @@ interface Likeable {
     public function getLikedBy(): array;
 }
 
-?>
+

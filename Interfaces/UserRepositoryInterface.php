@@ -12,4 +12,3 @@ interface UserRepositoryInterface {
     public function updateLastLogin(int $userId): bool;
 }
 
-?>

@@ -8,4 +8,3 @@ interface Taggable {
     public function clearTags(): void;
 }
 
-?>
