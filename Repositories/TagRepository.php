@@ -91,7 +91,7 @@ class TagRepository {
             'totalUsers' => (int)$data['totalUsers']
         ];
     }
-    
+
     public function mergeTags(string $fromTag, string $toTag): bool {
         $normalizedFrom = Tag::normalizeSlug($fromTag);
         $normalizedTo = Tag::normalizeSlug($toTag);
@@ -157,4 +157,5 @@ class TagRepository {
         }
     }
 
+    
 }
