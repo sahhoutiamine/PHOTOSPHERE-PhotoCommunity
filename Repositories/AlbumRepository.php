@@ -15,6 +15,7 @@ class AlbumRepository {
         $this->db = Database::getInstance()->getConnection();
     }
     
+    
     public function createAlbum(int $userId, string $title, string $cover, bool $isPrivate): int {
         if ($isPrivate) {
             $user = $this->getUserWithPermissions($userId);
