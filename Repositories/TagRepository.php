@@ -1,7 +1,7 @@
 <?php
 
 class TagRepository {
-
+    
 
     public function getPopularTags(int $limit = 50): array {
 

@@ -1,12 +1,13 @@
 <?php
+require_once __DIR__ . '/../Database.php';
 require_once __DIR__ . '/../Interfaces/UserRepositoryInterface.php';
 require_once __DIR__ . '/../Services/UserFactory.php';
 
 class UserRepository implements UserRepositoryInterface {
     private PDO $db;
     
-    public function __construct(PDO $db) {
-        $this->db = $db;
+    public function __construct() {
+        $this->db = Database::getInstance()->getConnection();
     }
     
     public function create(array $data): User {
@@ -103,7 +104,7 @@ class UserRepository implements UserRepositoryInterface {
         return $stmt->execute([$userId]);
     }
 
-     public function authenticate(string $email, string $password): ?User {
+    public function authenticate(string $email, string $password): ?User {
         $user = $this->findByEmail($email);
         
         if ($user && $user->verifyPassword($password)) {
