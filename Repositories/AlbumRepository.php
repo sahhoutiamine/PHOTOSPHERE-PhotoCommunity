@@ -106,7 +106,7 @@ class AlbumRepository {
     }
     }
     public function getAlbumWithPhotos(int $albumId, int $userId): ?array {
-
+        
     }
     public function getUserAlbums(int $userId, bool $includePrivate = true): array {
 
