@@ -64,9 +64,7 @@ abstract class User {
         return password_verify($password, $this->password);
     }
     
-    public function setPassword(string $password): void { 
-        $this->password = password_hash($password, PASSWORD_BCRYPT); 
-    }
+
     
     abstract public function canUploadPhoto(): bool;
     abstract public function canCreatePrivateAlbum(): bool;

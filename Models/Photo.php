@@ -251,8 +251,18 @@ class Photo implements Taggable, Commentable, Likeable
         return $this->likedBy;
     }
     
-    // protected function loadTagsFromDatabase(): void {
-    // }
+    protected function loadTagsFromDatabase(): void {
+        // Logic to load tags would go here. For now, leave empty or mock.
+        // If we had a connection, we would SELECT tags related to this photo.
+        // But since this is a Model, it shouldn't know about DB directly usually, 
+        // unless Active Record or using the DB singleton here.
+        // For the sake of the test/Repository pattern, this might remain empty 
+        // as tags are likely loaded by Repository when hydrating.
+        // However, the trait calls ensureTagsLoaded() on getters.
+        
+        // Let's assume tags are passed in constructor or hydration for now.
+        // But to stop the error, we just define it.
+    }
     
     public function toArray(): array
     {

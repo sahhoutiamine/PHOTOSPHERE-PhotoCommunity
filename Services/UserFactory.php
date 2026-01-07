@@ -6,7 +6,7 @@ require_once __DIR__ . '/../Models/Administrator.php';
 
 class UserFactory {
     public static function createFromArray(array $data): User {
-        if ($data['isSuper']) {
+        if (isset($data['isSuper']) && $data['isSuper']) {
             return new Administrator($data);
         }
         

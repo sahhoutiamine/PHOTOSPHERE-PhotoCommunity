@@ -126,7 +126,7 @@ class TagRepository {
                 "UPDATE photo_tags SET tagId = :toTagId 
                  WHERE tagId = :fromTagId 
                  AND photoId NOT IN (
-                     SELECT photoId FROM photo_tags WHERE tagId = :toTagId2
+                     SELECT photoId FROM (SELECT photoId FROM photo_tags WHERE tagId = :toTagId2) AS tmp
                  )"
             );
             $updateStmt->execute([

@@ -13,8 +13,8 @@ class UserRepository implements UserRepositoryInterface {
     public function create(array $data): User {
         $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
         
-        $sql = "INSERT INTO users (username, email, password, bio, profilePicture, role, moderatorLevel, isSuper) 
-                VALUES (:username, :email, :password, :bio, :profilePicture, :role, :moderatorLevel, :isSuper)";
+        $sql = "INSERT INTO users (username, email, password, bio, profilePicture, role, moderatorLevel, isSuper, subscriptionStart, subscriptionEnd) 
+                VALUES (:username, :email, :password, :bio, :profilePicture, :role, :moderatorLevel, :isSuper, :subscriptionStart, :subscriptionEnd)";
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
@@ -25,7 +25,9 @@ class UserRepository implements UserRepositoryInterface {
             'profilePicture' => $data['profilePicture'] ?? null,
             'role' => $data['role'] ?? 'BasicUser',
             'moderatorLevel' => $data['moderatorLevel'] ?? null,
-            'isSuper' => $data['isSuper'] ?? 0
+            'isSuper' => $data['isSuper'] ?? 0,
+            'subscriptionStart' => $data['subscriptionStart'] ?? null,
+            'subscriptionEnd' => $data['subscriptionEnd'] ?? null
         ]);
         
         $data['id'] = (int)$this->db->lastInsertId();

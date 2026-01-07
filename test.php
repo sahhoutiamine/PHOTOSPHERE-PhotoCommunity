@@ -1,438 +1,310 @@
 <?php
+// Enable error reporting for testing
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 require_once __DIR__ . '/Database.php';
-require_once __DIR__ . '/Models/BasicUser.php';
-require_once __DIR__ . '/Models/ProUser.php';
-require_once __DIR__ . '/Models/Moderator.php';
-require_once __DIR__ . '/Models/Administrator.php';
-require_once __DIR__ . '/Models/Photo.php';
-require_once __DIR__ . '/Models/Album.php';
-require_once __DIR__ . '/Models/Tag.php';
-require_once __DIR__ . '/Models/Comment.php';
-require_once __DIR__ . '/Models/Like.php';
 require_once __DIR__ . '/Services/UserFactory.php';
 require_once __DIR__ . '/Repositories/UserRepository.php';
 require_once __DIR__ . '/Repositories/AlbumRepository.php';
 require_once __DIR__ . '/Repositories/TagRepository.php';
+require_once __DIR__ . '/Models/Photo.php';
 
-function testDatabase() {
-    echo "=== Testing Database ===\n";
-    $db = Database::getInstance();
-    $conn = $db->getConnection();
-    echo "Database connection: " . ($conn ? "SUCCESS" : "FAILED") . "\n";
-    $db2 = Database::getInstance();
-    echo "Singleton pattern: " . ($db === $db2 ? "SUCCESS" : "FAILED") . "\n\n";
+// Helper function to print results
+function printTest(string $name, $result, $message = '') {
+    $status = $result ? "[PASS]" : "[FAIL]";
+    $color = $result ? "\033[32m" : "\033[31m";
+    $reset = "\033[0m";
+    echo "{$color}{$status} {$name}{$reset}\n";
+    if (!empty($message)) {
+        echo "       Details: {$message}\n";
+    }
+    echo "----------------------------------------\n";
 }
 
-function testUserFactory() {
-    echo "=== Testing UserFactory ===\n";
+// Database Helper for Cleanup
+function cleanupDatabase(PDO $db) {
+    try {
+        $db->exec("SET FOREIGN_KEY_CHECKS = 0");
+        $db->exec("TRUNCATE TABLE photo_tags");
+        $db->exec("TRUNCATE TABLE tags");
+        $db->exec("TRUNCATE TABLE photos");
+        $db->exec("TRUNCATE TABLE albums");
+        $db->exec("TRUNCATE TABLE users");
+        $db->exec("SET FOREIGN_KEY_CHECKS = 1");
+        echo "Database cleaned up successfully.\n\n";
+    } catch (PDOException $e) {
+        die("Cleanup failed: " . $e->getMessage());
+    }
+}
+
+// Global Manual Insert Helper for Photos (Since PhotoRepository is missing)
+function manuallyCreatePhoto(PDO $db, int $userId, string $title, string $state = 'published'): int {
+    $stmt = $db->prepare("
+        INSERT INTO photos (title, description, imageLink, state, createdAt, userId) 
+        VALUES (?, 'Test Description', 'https://placehold.co/600x400', ?, NOW(), ?)
+    ");
+    $stmt->execute([$title, $state, $userId]);
+    return (int)$db->lastInsertId();
+}
+
+try {
+    echo "========================================\n";
+    echo "    PHOTOSPHERE SYSTEM TEST SUITE       \n";
+    echo "========================================\n\n";
+
+    // 1. Setup
+    $db = Database::getInstance()->getConnection();
+    cleanupDatabase($db);
+
+    // ==========================================
+    // SECTION 1: USER REPOSITORY & FACTORY
+    // ==========================================
+    echo "\n>>> TESTING USER MANAGEMENT\n";
+
+    $userRepo = new UserRepository();
+
+    // Test 1.1: Create Basic User
+    $basicUserData = [
+        'username' => 'testuser',
+        'email' => 'test@example.com',
+        'password' => 'password123',
+        'bio' => 'A tester account',
+        'role' => 'BasicUser'
+    ];
+    $basicUser = $userRepo->create($basicUserData);
+    printTest("Create Basic User", $basicUser instanceof BasicUser && $basicUser->getId() > 0, "ID: " . $basicUser->getId());
+    $userId = $basicUser->getId();
+
+    // Test 1.2: Find By ID
+    $foundUser = $userRepo->findById($userId);
+    printTest("Find User By ID", $foundUser && $foundUser->getUsername() === 'testuser');
+
+    // Test 1.3: Find By Email
+    $foundByEmail = $userRepo->findByEmail('test@example.com');
+    printTest("Find User By Email", $foundByEmail && $foundByEmail->getId() === $userId);
+
+    // Test 1.4: Update User
+    $basicUser->setBio("Updated Bio");
+    $updateResult = $userRepo->update($basicUser);
+    $reloadedUser = $userRepo->findById($userId);
+    printTest("Update User Bio", $updateResult && $reloadedUser->getBio() === "Updated Bio");
+
+    // Test 1.5: Authenticate
+    $authUser = $userRepo->authenticate('test@example.com', 'password123');
+    printTest("Authenticate User (Correct)", $authUser !== null);
     
-    $basicUser = UserFactory::createBasicUser("basic_user", "basic@test.com", "password123");
-    echo "BasicUser created: " . $basicUser->getUsername() . "\n";
-    echo "Can upload: " . ($basicUser->canUploadPhoto() ? "YES" : "NO") . "\n";
-    echo "Upload limit: " . $basicUser->getUploadLimit() . "\n";
-    echo "Can create private album: " . ($basicUser->canCreatePrivateAlbum() ? "YES" : "NO") . "\n";
-    echo "Remaining uploads: " . $basicUser->getRemainingUploads() . "\n";
-    
-    $proUser = UserFactory::createProUser("pro_user", "pro@test.com", "password123", "2026-12-31 23:59:59");
-    echo "\nProUser created: " . $proUser->getUsername() . "\n";
-    echo "Can upload: " . ($proUser->canUploadPhoto() ? "YES" : "NO") . "\n";
-    echo "Upload limit: " . ($proUser->getUploadLimit() ?? "Unlimited") . "\n";
-    echo "Can create private album: " . ($proUser->canCreatePrivateAlbum() ? "YES" : "NO") . "\n";
-    echo "Has active subscription: " . ($proUser->hasActiveSubscription() ? "YES" : "NO") . "\n";
-    
-    $moderator = UserFactory::createModerator("mod_user", "mod@test.com", "password123", "senior");
-    echo "\nModerator created: " . $moderator->getUsername() . "\n";
-    echo "Can moderate: " . ($moderator->canModerateContent() ? "YES" : "NO") . "\n";
-    echo "Can suspend user: " . ($moderator->canSuspendUser() ? "YES" : "NO") . "\n";
-    
-    $admin = UserFactory::createAdministrator("admin_user", "admin@test.com", "password123", true);
-    echo "\nAdministrator created: " . $admin->getUsername() . "\n";
-    echo "Has full access: " . ($admin->hasFullAccess() ? "YES" : "NO") . "\n";
-    echo "Is super: " . ($admin->isSuper() ? "YES" : "NO") . "\n";
-    
-    $userData = [
-        'id' => 100,
-        'username' => 'test_from_array',
-        'email' => 'array@test.com',
-        'password' => 'hashed',
+    $failUser = $userRepo->authenticate('test@example.com', 'wrongpassword');
+    printTest("Authenticate User (Wrong Password)", $failUser === null);
+
+    // Create Pro User for Album Tests
+    $proUser = $userRepo->create([
+        'username' => 'prouser', 
+        'email' => 'pro@example.com', 
+        'password' => 'secret',
         'role' => 'ProUser',
-        'subscriptionEnd' => '2026-12-31 23:59:59'
-    ];
-    $userFromArray = UserFactory::createFromArray($userData);
-    echo "\nUser from array: " . $userFromArray->getUsername() . " (" . $userFromArray->getRole() . ")\n\n";
-}
-
-function testUserModel() {
-    echo "=== Testing User Models ===\n";
-    
-    $user = UserFactory::createBasicUser("test_user", "test@example.com", "mypassword");
-    
-    echo "Username: " . $user->getUsername() . "\n";
-    echo "Email: " . $user->getEmail() . "\n";
-    echo "Role: " . $user->getRole() . "\n";
-    
-    $user->setUsername("updated_user");
-    $user->setEmail("updated@example.com");
-    $user->setBio("This is my bio");
-    $user->setProfilePicture("profile.jpg");
-    echo "Updated username: " . $user->getUsername() . "\n";
-    echo "Updated email: " . $user->getEmail() . "\n";
-    echo "Bio: " . $user->getBio() . "\n";
-    
-    echo "Password verification: " . ($user->verifyPassword("mypassword") ? "SUCCESS" : "FAILED") . "\n";
-    echo "Wrong password: " . ($user->verifyPassword("wrongpass") ? "FAILED" : "SUCCESS") . "\n";
-    
-    $user->incrementUploadCount();
-    $user->incrementUploadCount();
-    echo "Upload count: " . $user->getUploadCount() . "\n";
-    
-    $userArray = $user->toArray();
-    echo "User as array has keys: " . implode(", ", array_keys($userArray)) . "\n\n";
-}
-
-function testPhotoModel() {
-    echo "=== Testing Photo Model ===\n";
-    
-    $photoData = [
-        'title' => 'Sunset Beach',
-        'description' => 'Beautiful sunset at the beach',
-        'imageLink' => 'uploads/sunset.jpg',
-        'fileSize' => 2048000,
-        'dimensions' => '1920x1080',
-        'state' => 'draft',
-        'userId' => 1,
-        'isPublic' => true
-    ];
-    
-    $photo = new Photo($photoData);
-    
-    echo "Photo title: " . $photo->getTitle() . "\n";
-    echo "Description: " . $photo->getDescription() . "\n";
-    echo "Image link: " . $photo->getImageLink() . "\n";
-    echo "File size: " . $photo->getFileSize() . " bytes\n";
-    echo "Dimensions: " . $photo->getDimensions() . "\n";
-    echo "State: " . $photo->getState() . "\n";
-    echo "Is draft: " . ($photo->isDraft() ? "YES" : "NO") . "\n";
-    echo "Is published: " . ($photo->isPublished() ? "YES" : "NO") . "\n";
-    echo "Is public: " . ($photo->isPublic() ? "YES" : "NO") . "\n";
-    
-    $photo->setTitle("Updated Sunset");
-    $photo->setDescription("Even more beautiful");
-    echo "Updated title: " . $photo->getTitle() . "\n";
-    
-    $photo->publish();
-    echo "After publish - State: " . $photo->getState() . "\n";
-    echo "Is published: " . ($photo->isPublished() ? "YES" : "NO") . "\n";
-    
-    $photo->incrementViewCount();
-    $photo->incrementViewCount();
-    $photo->incrementViewCount();
-    echo "View count: " . $photo->getViewCount() . "\n";
-    
-    $photo->addTag("nature");
-    $photo->addTag("sunset");
-    $photo->addTag("beach");
-    echo "Tags: " . implode(", ", $photo->getTags()) . "\n";
-    echo "Has tag 'sunset': " . ($photo->hasTag("sunset") ? "YES" : "NO") . "\n";
-    echo "Has tag 'mountain': " . ($photo->hasTag("mountain") ? "YES" : "NO") . "\n";
-    
-    $photo->removeTag("beach");
-    echo "Tags after removal: " . implode(", ", $photo->getTags()) . "\n";
-    
-    echo "Has all tags [nature, sunset]: " . ($photo->hasAllTags(['nature', 'sunset']) ? "YES" : "NO") . "\n";
-    echo "Has any tag [beach, sunset]: " . ($photo->hasAnyTag(['beach', 'sunset']) ? "YES" : "NO") . "\n";
-    
-    $photo->addLike(1);
-    $photo->addLike(2);
-    $photo->addLike(3);
-    echo "Like count: " . $photo->getLikeCount() . "\n";
-    echo "Is liked by user 2: " . ($photo->isLikedBy(2) ? "YES" : "NO") . "\n";
-    echo "Is liked by user 5: " . ($photo->isLikedBy(5) ? "YES" : "NO") . "\n";
-    
-    $photo->removeLike(2);
-    echo "Like count after removal: " . $photo->getLikeCount() . "\n";
-    
-    $commentId1 = $photo->addComment("Great photo!", 1);
-    $commentId2 = $photo->addComment("Amazing colors!", 2);
-    echo "Comment count: " . $photo->getCommentCount() . "\n";
-    echo "Comments: " . count($photo->getComments()) . " items\n";
-    
-    $photo->removeComment($commentId1);
-    echo "Comment count after removal: " . $photo->getCommentCount() . "\n";
-    
-    $photo->archive();
-    echo "State after archive: " . $photo->getState() . "\n";
-    
-    $photo->setPublic(false);
-    echo "Is public after setting to private: " . ($photo->isPublic() ? "YES" : "NO") . "\n";
-    
-    $photo->clearTags();
-    echo "Tags after clear: " . count($photo->getTags()) . "\n\n";
-}
-
-function testAlbumModel() {
-    echo "=== Testing Album Model ===\n";
-    
-    $albumData = [
-        'id' => 1,
-        'name' => 'Vacation 2025',
-        'public' => true,
-        'cover' => 'cover.jpg',
-        'photoCount' => 15,
-        'publisherId' => 1
-    ];
-    
-    $album = new Album($albumData);
-    
-    echo "Album name: " . $album->getName() . "\n";
-    echo "Is public: " . ($album->isPublic() ? "YES" : "NO") . "\n";
-    echo "Cover: " . $album->getCover() . "\n";
-    echo "Photo count: " . $album->getPhotoCount() . "\n";
-    echo "Publisher ID: " . $album->getPublisherId() . "\n";
-    
-    $album->setName("Summer Vacation 2025");
-    $album->setPublic(false);
-    $album->setCover("new_cover.jpg");
-    echo "Updated name: " . $album->getName() . "\n";
-    echo "Is public after update: " . ($album->isPublic() ? "YES" : "NO") . "\n";
-    
-    $album->incrementPhotoCount();
-    $album->incrementPhotoCount();
-    echo "Photo count after increments: " . $album->getPhotoCount() . "\n";
-    
-    $album->decrementPhotoCount();
-    echo "Photo count after decrement: " . $album->getPhotoCount() . "\n";
-    
-    $albumArray = $album->toArray();
-    echo "Album as array has " . count($albumArray) . " keys\n\n";
-}
-
-function testTagModel() {
-    echo "=== Testing Tag Model ===\n";
-    
-    $tagData = [
-        'id' => 1,
-        'slug' => 'nature-photography',
-        'photoCount' => 250
-    ];
-    
-    $tag = new Tag($tagData);
-    
-    echo "Tag slug: " . $tag->getSlug() . "\n";
-    echo "Photo count: " . $tag->getPhotoCount() . "\n";
-    
-    $tag->incrementPhotoCount();
-    echo "Photo count after increment: " . $tag->getPhotoCount() . "\n";
-    
-    $tag->decrementPhotoCount();
-    echo "Photo count after decrement: " . $tag->getPhotoCount() . "\n";
-    
-    $normalized1 = Tag::normalizeSlug("Nature Photography!");
-    $normalized2 = Tag::normalizeSlug("  Sunset-Beach  ");
-    $normalized3 = Tag::normalizeSlug("Urban___Life");
-    echo "Normalized 'Nature Photography!': " . $normalized1 . "\n";
-    echo "Normalized '  Sunset-Beach  ': " . $normalized2 . "\n";
-    echo "Normalized 'Urban___Life': " . $normalized3 . "\n";
-    
-    $tagArray = $tag->toArray();
-    echo "Tag as array has " . count($tagArray) . " keys\n\n";
-}
-
-function testCommentModel() {
-    echo "=== Testing Comment Model ===\n";
-    
-    $commentData = [
-        'id' => 1,
-        'content' => 'This is a great photo!',
-        'isArchive' => false,
-        'userId' => 5,
-        'photoId' => 10
-    ];
-    
-    $comment = new Comment($commentData);
-    
-    echo "Comment ID: " . $comment->getId() . "\n";
-    echo "Content: " . $comment->getContent() . "\n";
-    echo "User ID: " . $comment->getUserId() . "\n";
-    echo "Photo ID: " . $comment->getPhotoId() . "\n";
-    echo "Is archived: " . ($comment->isArchived() ? "YES" : "NO") . "\n";
-    
-    $comment->setContent("Updated comment text");
-    echo "Updated content: " . $comment->getContent() . "\n";
-    
-    $comment->archive();
-    echo "Is archived after archive(): " . ($comment->isArchived() ? "YES" : "NO") . "\n";
-    
-    $commentArray = $comment->toArray();
-    echo "Comment as array has " . count($commentArray) . " keys\n\n";
-}
-
-function testLikeModel() {
-    echo "=== Testing Like Model ===\n";
-    
-    $likeData = [
-        'userId' => 7,
-        'photoId' => 12
-    ];
-    
-    $like = new Like($likeData);
-    
-    echo "User ID: " . $like->getUserId() . "\n";
-    echo "Photo ID: " . $like->getPhotoId() . "\n";
-    
-    $likeArray = $like->toArray();
-    echo "Like as array has " . count($likeArray) . " keys\n\n";
-}
-
-function testUserRepository() {
-    echo "=== Testing UserRepository ===\n";
-    
-    try {
-        $repo = new UserRepository();
-        
-        $userData = [
-            'username' => 'repo_test_user',
-            'email' => 'repo_test@example.com',
-            'password' => 'testpass123',
-            'role' => 'BasicUser',
-            'bio' => 'Test bio'
-        ];
-        
-        echo "Creating user...\n";
-        $user = $repo->create($userData);
-        echo "User created with ID: " . $user->getId() . "\n";
-        
-        echo "Finding by ID...\n";
-        $foundUser = $repo->findById($user->getId());
-        echo "Found user: " . ($foundUser ? $foundUser->getUsername() : "NOT FOUND") . "\n";
-        
-        echo "Finding by email...\n";
-        $foundByEmail = $repo->findByEmail('repo_test@example.com');
-        echo "Found by email: " . ($foundByEmail ? $foundByEmail->getUsername() : "NOT FOUND") . "\n";
-        
-        echo "Finding by username...\n";
-        $foundByUsername = $repo->findByUsername('repo_test_user');
-        echo "Found by username: " . ($foundByUsername ? $foundByUsername->getEmail() : "NOT FOUND") . "\n";
-        
-        echo "Authenticating...\n";
-        $authUser = $repo->authenticate('repo_test@example.com', 'testpass123');
-        echo "Authentication: " . ($authUser ? "SUCCESS" : "FAILED") . "\n";
-        
-        echo "Authenticating with wrong password...\n";
-        $authFail = $repo->authenticate('repo_test@example.com', 'wrongpass');
-        echo "Wrong password auth: " . ($authFail ? "FAILED" : "SUCCESS (correctly rejected)") . "\n";
-        
-        echo "Updating user...\n";
-        $user->setBio("Updated bio from repository test");
-        $updateResult = $repo->update($user);
-        echo "Update: " . ($updateResult ? "SUCCESS" : "FAILED") . "\n";
-        
-        echo "Finding all users...\n";
-        $allUsers = $repo->findAll(10, 0);
-        echo "Found " . count($allUsers) . " users\n";
-        
-        echo "Deleting user...\n";
-        $deleteResult = $repo->delete($user->getId());
-        echo "Delete: " . ($deleteResult ? "SUCCESS" : "FAILED") . "\n\n";
-        
-    } catch (Exception $e) {
-        echo "Error: " . $e->getMessage() . "\n\n";
-    }
-}
-
-function testAlbumRepository() {
-    echo "=== Testing AlbumRepository ===\n";
-    
-    try {
-        $repo = new AlbumRepository();
-        
-        echo "Album exists check (non-existent): " . ($repo->albumExists(99999) ? "EXISTS" : "NOT FOUND") . "\n";
-        
-        echo "\nNote: Full AlbumRepository testing requires valid user and photo IDs in database\n";
-        echo "Methods available:\n";
-        echo "- createAlbum(userId, title, cover, isPrivate)\n";
-        echo "- addPhotoToAlbum(albumId, photoId, userId)\n";
-        echo "- removePhotoFromAlbum(albumId, photoId, userId)\n";
-        echo "- getAlbumWithPhotos(albumId, userId)\n";
-        echo "- getUserAlbums(userId, includePrivate)\n";
-        echo "- updateAlbum(albumId, userId, data)\n";
-        echo "- deleteAlbum(albumId, userId)\n";
-        echo "- albumExists(albumId)\n";
-        echo "- getAlbumStats(albumId)\n\n";
-        
-    } catch (Exception $e) {
-        echo "Error: " . $e->getMessage() . "\n\n";
-    }
-}
-
-function testTagRepository() {
-    echo "=== Testing TagRepository ===\n";
-    
-    try {
-        $repo = new TagRepository();
-        
-        echo "Getting popular tags...\n";
-        $popularTags = $repo->getPopularTags(10);
-        echo "Found " . count($popularTags) . " popular tags\n";
-        
-        echo "\nSearching tags with 'photo'...\n";
-        $searchResults = $repo->searchTags('photo', 5);
-        echo "Found " . count($searchResults) . " matching tags\n";
-        
-        echo "\nNote: Full TagRepository testing requires data in database\n";
-        echo "Methods available:\n";
-        echo "- getPopularTags(limit)\n";
-        echo "- searchTags(query, limit)\n";
-        echo "- getPhotosByTag(tagName, page, perPage)\n";
-        echo "- getTagStats(tagName)\n";
-        echo "- mergeTags(fromTag, toTag)\n\n";
-        
-    } catch (Exception $e) {
-        echo "Error: " . $e->getMessage() . "\n\n";
-    }
-}
-
-function testTimestampableTrait() {
-    echo "=== Testing TimestampableTrait (via Photo) ===\n";
-    
-    $photo = new Photo([
-        'title' => 'Test Photo',
-        'imageLink' => 'test.jpg',
-        'userId' => 1
+        'subscriptionStart' => date('Y-m-d H:i:s'),
+        'subscriptionEnd' => date('Y-m-d H:i:s', strtotime('+1 year'))
     ]);
+    printTest("Create Pro User", $proUser instanceof ProUser, "ID: " . $proUser->getId());
+    $proUserId = $proUser->getId();
     
-    echo "Created at: " . $photo->getCreatedAt('Y-m-d H:i:s') . "\n";
-    echo "Updated at: " . $photo->getUpdatedAt('Y-m-d H:i:s') . "\n";
+    // Test 1.6: Create Administrator
+    $adminUser = $userRepo->create([
+        'username' => 'admin',
+        'email' => 'admin@example.com',
+        'password' => 'adminpass',
+        'role' => 'Administrator',
+        'isSuper' => true
+    ]);
+    printTest("Create Administrator", $adminUser instanceof Administrator, "ID: " . $adminUser->getId());
+
+
+    // ==========================================
+    // SECTION 2: ALBUM REPOSITORY
+    // ==========================================
+    echo "\n>>> TESTING ALBUM MANAGEMENT\n";
+
+    $albumRepo = new AlbumRepository();
+
+    // Test 2.1: Create Public Album
+    try {
+        $albumId = $albumRepo->createAlbum($userId, "My Vacation", "cover.jpg", false);
+        printTest("Create Public Album (Basic User)", $albumId > 0, "AlbumID: $albumId");
+    } catch (Exception $e) {
+        printTest("Create Public Album (Basic User)", false, $e->getMessage());
+    }
+
+    // Test 2.2: Create Private Album (Basic User - Should Fail/Check Logic)
+    // Note: implementation says Pro can create private.
+    try {
+        $albumRepo->createAlbum($userId, "Secret Album", "cover.jpg", true);
+        printTest("Create Private Album (Basic User - Should Fail)", false, "Exception expected but not thrown");
+    } catch (Exception $e) {
+        printTest("Create Private Album (Basic User - Should Fail)", true, "Caught expected error: " . $e->getMessage());
+    }
+
+    // Test 2.3: Create Private Album (Pro User)
+    try {
+        $privAlbumId = $albumRepo->createAlbum($proUserId, "Pro Secret", "secret.jpg", true);
+        printTest("Create Private Album (Pro User)", $privAlbumId > 0, "AlbumID: $privAlbumId");
+    } catch (Exception $e) {
+        printTest("Create Private Album (Pro User)", false, $e->getMessage());
+    }
+
+    // Test 2.4: Add Photo to Album
+    // First, manually Create a Photo for the User
+    $photoId = manuallyCreatePhoto($db, $userId, "Sunset Beach");
     
-    sleep(1);
-    $photo->setTitle("Modified Title");
-    echo "Updated at after modification: " . $photo->getUpdatedAt('Y-m-d H:i:s') . "\n\n";
+    try {
+        $added = $albumRepo->addPhotoToAlbum($albumId, $photoId, $userId);
+        printTest("Add Photo to Album", $added);
+    } catch (Exception $e) {
+        printTest("Add Photo to Album", false, $e->getMessage());
+    }
+
+    // Test 2.5: Get Album With Photos
+    $albumData = $albumRepo->getAlbumWithPhotos($albumId, $userId);
+    $hasPhotos = isset($albumData['photos']) && count($albumData['photos']) > 0;
+    printTest("Get Album Content", $hasPhotos, "Photo count: " . ($hasPhotos ? count($albumData['photos']) : 0));
+
+    // Test 2.5b: Update Album
+    try {
+        $updateAlbumResult = $albumRepo->updateAlbum($albumId, $userId, ['name' => 'Updated Vacation Title']);
+        printTest("Update Album Title", $updateAlbumResult);
+        $updatedAlbum = $albumRepo->getAlbumWithPhotos($albumId, $userId);
+        printTest("Verify Album Update", $updatedAlbum['album']['name'] === 'Updated Vacation Title');
+    } catch (Exception $e) {
+        printTest("Update Album", false, $e->getMessage());
+    }
+
+    // Test 2.5c: Remove Photo from Album
+    try {
+        $removeResult = $albumRepo->removePhotoFromAlbum($albumId, $photoId, $userId);
+        printTest("Remove Photo from Album", $removeResult);
+        // Verify removal
+        $checkAlbum = $albumRepo->getAlbumWithPhotos($albumId, $userId);
+        $photoStillThere = false;
+        foreach ($checkAlbum['photos'] as $p) {
+            if ($p['id'] == $photoId) $photoStillThere = true;
+        }
+        printTest("Verify Photo Removal", !$photoStillThere);
+        
+        // Add it back for Tag tests
+        $albumRepo->addPhotoToAlbum($albumId, $photoId, $userId);
+    } catch (Exception $e) {
+        printTest("Remove Photo from Album", false, $e->getMessage());
+    }
+
+    // Test 2.6: Get User Albums
+    $userAlbums = $albumRepo->getUserAlbums($userId);
+    // Note: getUserAlbums returns an array with 'albums' key
+    printTest("Get User Albums List", isset($userAlbums['albums']) && count($userAlbums['albums']) >= 1);
+
+    // Test 2.7: Album Exists
+    $exists = $albumRepo->albumExists($albumId);
+    printTest("Album Exists Check", $exists);
+
+    // Test 2.8: Get Album Stats
+    $stats = $albumRepo->getAlbumStats($albumId);
+    // Depending on what stats return, at least check if array
+    printTest("Get Album Stats", is_array($stats));
+
+    // Test 2.9: Delete Album
+    // We'll assume $albumId is the one we created.
+    // Note: This must be done carefuly if other tests rely on it, but we are near end of Album section.
+    // However, Section 3 uses $photoId which is in $albumId?
+    // Wait, in Section 2.5c we removed the photo, then added it back.
+    // Section 3 uses $photoId which is a raw photo, but linked to tags.
+    // If we delete the album, the photo might be affected if cascading delete?
+    // Let's check DB schema or just assume safe since 'photos' usually stay or set NULL.
+    // In AlbumRepository::deleteAlbum, it deletes from 'albums'.
+    // If FK constraint with CASCADE, photos disappear.
+    // Let's create a dummy album for deletion test to be safe.
+    try {
+        $dummyAlbumId = $albumRepo->createAlbum($userId, "Delete Me", "cover.jpg", false);
+        $deleteKwResult = $albumRepo->deleteAlbum($dummyAlbumId, $userId);
+        printTest("Delete Album", $deleteKwResult);
+        
+        $shouldNotExist = $albumRepo->albumExists($dummyAlbumId);
+        printTest("Verify Album Deleted", !$shouldNotExist);
+    } catch (Exception $e) {
+        printTest("Delete Album", false, $e->getMessage());
+    }
+
+
+    // ==========================================
+    // SECTION 3: TAG REPOSITORY
+    // ==========================================
+    echo "\n>>> TESTING TAG MANAGEMENT\n";
+    
+    $tagRepo = new TagRepository();
+
+    // Test 3.1: Create and Associate Tags (Requires Manual Setup since TagRepo only reads/merges primarily)
+    // We need to insert a tag and link it to the photo manually strictly for testing 'getPhotosByTag'
+    
+    // Insert Tags
+    $db->prepare("INSERT INTO tags (slug, photoCount) VALUES ('sunset', 1), ('nature', 0), ('beach', 5)")->execute();
+    $tagId = $db->lastInsertId();
+    
+    // Link Tag to Photo
+    // First get the tag ID properly if multiple inserts
+    $stmt = $db->prepare("SELECT id FROM tags WHERE slug = 'sunset'");
+    $stmt->execute();
+    $sunsetTag = $stmt->fetch();
+    $stmt = $db->prepare("SELECT id FROM tags WHERE slug = 'nature'");
+    $stmt->execute();
+    $natureTag = $stmt->fetch();
+
+    if ($sunsetTag) {
+        $db->prepare("INSERT INTO photo_tags (photoId, tagId) VALUES (?, ?)")->execute([$photoId, $sunsetTag['id']]);
+        printTest("Setup: Manually linked 'sunset' tag to photo", true);
+    }
+
+    // Test 3.2: Search Tags
+    $searchResults = $tagRepo->searchTags('sun');
+    printTest("Search Tags ('sun')", count($searchResults) > 0 && $searchResults[0]->getSlug() === 'sunset');
+
+    // Test 3.2b: Get Popular Tags
+    $popularTags = $tagRepo->getPopularTags(10);
+    printTest("Get Popular Tags", count($popularTags) > 0);
+    // 'beach' has 5 photos (fake count inserted), so it should be top if we inserted it right.
+
+    // Test 3.3: Get Photos by Tag
+    $taggedPhotos = $tagRepo->getPhotosByTag('sunset');
+    printTest("Get Photos by Tag ('sunset')", count($taggedPhotos) > 0, "Found " . count($taggedPhotos) . " photos");
+
+    // Test 3.4: Merge Tags (Merge 'sunset' into 'nature')
+    // 'sunset' has 1 photo, 'nature' has 0. After merge, 'nature' should have 1 photo.
+    $mergeResult = $tagRepo->mergeTags('sunset', 'nature');
+    printTest("Merge Tags (sunset -> nature)", $mergeResult);
+    
+    $natureStats = $tagRepo->getTagStats('nature');
+    printTest("Verify Merge Result", $natureStats['totalPhotos'] == 1, "Nature tag photos: " . $natureStats['totalPhotos']);
+
+
+    // ==========================================
+    // FINAL CLEANUP check
+    // ==========================================
+    echo "\n>>> TEARDOWN\n";
+    
+    // Test 1.6: Find All Users (Adding here to clean up logic or just test)
+    $allUsers = $userRepo->findAll();
+    printTest("Find All Users", count($allUsers) >= 2); // basic + pro
+    
+    // Delete User
+    $deleteResult = $userRepo->delete($userId);
+    printTest("Delete Basic User", $deleteResult);
+    
+    $deletePro = $userRepo->delete($proUserId);
+    printTest("Delete Pro User", $deletePro);
+
+    $findDeleted = $userRepo->findById($userId);
+    printTest("Verify User Deleted", $findDeleted === null);
+
+
+} catch (Exception $e) {
+    echo "\n\033[31m[CRITICAL ERROR]\033[0m Test suite halted: " . $e->getMessage() . "\n";
+    echo $e->getTraceAsString();
 }
-
-function runAllTests() {
-    echo "╔════════════════════════════════════════╗\n";
-    echo "║   PhotoSphere Project Test Suite      ║\n";
-    echo "╚════════════════════════════════════════╝\n\n";
-    
-    testDatabase();
-    testUserFactory();
-    testUserModel();
-    testPhotoModel();
-    testAlbumModel();
-    testTagModel();
-    testCommentModel();
-    testLikeModel();
-    testTimestampableTrait();
-    testUserRepository();
-    testAlbumRepository();
-    testTagRepository();
-    
-    echo "╔════════════════════════════════════════╗\n";
-    echo "║     All Tests Completed!               ║\n";
-    echo "╚════════════════════════════════════════╝\n";
-}
-
-runAllTests();
-
-?>

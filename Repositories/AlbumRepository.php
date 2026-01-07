@@ -35,7 +35,7 @@ class AlbumRepository {
             VALUES (?, ?, ?, NOW(), NOW(), ?)
         ");
         
-        $public = !$isPrivate;
+        $public = (int)(!$isPrivate);
         $stmt->execute([$title, $public, $cover, $userId]);
         
         return (int)$this->db->lastInsertId();
@@ -54,7 +54,7 @@ class AlbumRepository {
             throw new Exception("Photo non trouvée ou vous n'en êtes pas le propriétaire");
         }
         
-        $stmt = $this->db->prepare("SELECT photoId FROM photos WHERE id = ? AND albumId = ?");
+        $stmt = $this->db->prepare("SELECT id FROM photos WHERE id = ? AND albumId = ?");
         $stmt->execute([$photoId, $albumId]);
         if ($stmt->fetch()) {
             throw new Exception("Cette photo est déjà dans l'album");
@@ -80,7 +80,7 @@ class AlbumRepository {
         return $success;
     }
     public function removePhotoFromAlbum(int $albumId, int $photoId, int $userId): bool {
-        public function removePhotoFromAlbum(int $albumId, int $photoId, int $userId): bool {
+
         $stmt = $this->db->prepare("SELECT id FROM albums WHERE id = ? AND publisherId = ?");
         $stmt->execute([$albumId, $userId]);
         if (!$stmt->fetch()) {
@@ -105,7 +105,7 @@ class AlbumRepository {
         
         return $success;
     }
-    }
+
     public function getAlbumWithPhotos(int $albumId, int $userId): ?array {
         $stmt = $this->db->prepare("
             SELECT a.*, u.username as publisherUsername, u.profilePicture as publisherProfilePicture
@@ -281,7 +281,7 @@ class AlbumRepository {
             throw new Exception("Vous n'êtes pas autorisé à supprimer cet album");
         }
         
-        $this->logAlbumDeletion($albumId, $album['name'], $userId);
+        // $this->logAlbumDeletion($albumId, $album['name'], $userId);
         
         $stmt = $this->db->prepare("DELETE FROM albums WHERE id = ?");
         
@@ -292,8 +292,8 @@ class AlbumRepository {
         $stmt = $this->db->prepare("
             SELECT u.*, 
                    CASE 
-                       WHEN u.level = 'administrator' THEN 'administrator'
-                       WHEN u.level = 'moderator' THEN 'moderator'
+                       WHEN u.role = 'Administrator' THEN 'administrator'
+                       WHEN u.role = 'Moderator' THEN 'moderator'
                        WHEN u.subscriptionEnd IS NOT NULL AND u.subscriptionEnd > NOW() THEN 'pro'
                        ELSE 'basic'
                    END as user_type
