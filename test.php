@@ -89,29 +89,24 @@ class AlbumRepository {
     }
     
     public function removePhotoFromAlbum(int $albumId, int $photoId, int $userId): bool {
-        // Vérifier la propriété de l'album
         $stmt = $this->db->prepare("SELECT id FROM albums WHERE id = ? AND publisherId = ?");
         $stmt->execute([$albumId, $userId]);
         if (!$stmt->fetch()) {
             throw new Exception("Album non trouvé ou vous n'en êtes pas le propriétaire");
         }
         
-        // Vérifier que la photo est bien dans l'album
         $stmt = $this->db->prepare("SELECT id FROM photos WHERE id = ? AND albumId = ?");
         $stmt->execute([$photoId, $albumId]);
         if (!$stmt->fetch()) {
             throw new Exception("Cette photo n'est pas dans l'album");
         }
         
-        // Retirer la photo de l'album (définir albumId à NULL)
         $stmt = $this->db->prepare("UPDATE photos SET albumId = NULL WHERE id = ?");
         $success = $stmt->execute([$photoId]);
         
         if ($success) {
-            // Mettre à jour le compteur de photos de l'album
             $this->updateAlbumPhotoCount($albumId);
             
-            // Mettre à jour la date de modification de l'album
             $stmt = $this->db->prepare("UPDATE albums SET updatedAt = NOW() WHERE id = ?");
             $stmt->execute([$albumId]);
         }

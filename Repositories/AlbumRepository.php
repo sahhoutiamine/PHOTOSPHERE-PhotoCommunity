@@ -79,7 +79,31 @@ class AlbumRepository {
         return $success;
     }
     public function removePhotoFromAlbum(int $albumId, int $photoId, int $userId): bool {
-
+        public function removePhotoFromAlbum(int $albumId, int $photoId, int $userId): bool {
+        $stmt = $this->db->prepare("SELECT id FROM albums WHERE id = ? AND publisherId = ?");
+        $stmt->execute([$albumId, $userId]);
+        if (!$stmt->fetch()) {
+            throw new Exception("Album non trouvé ou vous n'en êtes pas le propriétaire");
+        }
+        
+        $stmt = $this->db->prepare("SELECT id FROM photos WHERE id = ? AND albumId = ?");
+        $stmt->execute([$photoId, $albumId]);
+        if (!$stmt->fetch()) {
+            throw new Exception("Cette photo n'est pas dans l'album");
+        }
+        
+        $stmt = $this->db->prepare("UPDATE photos SET albumId = NULL WHERE id = ?");
+        $success = $stmt->execute([$photoId]);
+        
+        if ($success) {
+            $this->updateAlbumPhotoCount($albumId);
+            
+            $stmt = $this->db->prepare("UPDATE albums SET updatedAt = NOW() WHERE id = ?");
+            $stmt->execute([$albumId]);
+        }
+        
+        return $success;
+    }
     }
     public function getAlbumWithPhotos(int $albumId, int $userId): ?array {
 
