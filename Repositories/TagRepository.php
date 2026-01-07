@@ -2,6 +2,11 @@
 
 class TagRepository {
     
+    private PDO $db;
+    
+    public function __construct() {
+        $this->db = Database::getInstance()->getConnection();
+    }
 
     public function getPopularTags(int $limit = 50): array {
 

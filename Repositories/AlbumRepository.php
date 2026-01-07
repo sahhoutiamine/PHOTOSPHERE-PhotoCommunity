@@ -1,6 +1,13 @@
 <?php
 
 class AlbumRepository {
+    
+    private PDO $db;
+    
+    public function __construct() {
+        $this->db = Database::getInstance()->getConnection();
+    }
+
     public function createAlbum(int $userId, string $title, string $description, bool $isPrivate): int {
 
     }
