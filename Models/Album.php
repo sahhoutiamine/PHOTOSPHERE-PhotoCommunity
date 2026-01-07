@@ -6,6 +6,7 @@ class Album {
     private bool $public;
     private ?string $cover;
     private int $photoCount;
+    private ?string $createdAt;
     private ?string $updatedAt;
     private int $publisherId;
     
@@ -15,6 +16,7 @@ class Album {
         $this->public = (bool)($data['public'] ?? true);
         $this->cover = $data['cover'] ?? null;
         $this->photoCount = $data['photoCount'] ?? 0;
+        $this->createdAt = $data['createdAt'] ?? null;
         $this->updatedAt = $data['updatedAt'] ?? null;
         $this->publisherId = $data['publisherId'] ?? 0;
     }
@@ -25,6 +27,7 @@ class Album {
     public function isPublic(): bool { return $this->public; }
     public function getCover(): ?string { return $this->cover; }
     public function getPhotoCount(): int { return $this->photoCount; }
+    public function getCreatedAt(): ?string { return $this->createdAt; }
     public function getUpdatedAt(): ?string { return $this->updatedAt; }
     public function getPublisherId(): int { return $this->publisherId; }
     
@@ -43,6 +46,7 @@ class Album {
             'public' => $this->public,
             'cover' => $this->cover,
             'photoCount' => $this->photoCount,
+            'createdAt' => $this->createdAt,
             'updatedAt' => $this->updatedAt,
             'publisherId' => $this->publisherId
         ];

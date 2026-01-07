@@ -7,10 +7,7 @@ class AlbumRepository {
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
     }
-
-    public function createAlbum(int $userId, string $title, string $description, bool $isPrivate): int {
-
-    }
+    
     public function addPhotoToAlbum(int $albumId, int $photoId, int $userId): bool {
 
     }
