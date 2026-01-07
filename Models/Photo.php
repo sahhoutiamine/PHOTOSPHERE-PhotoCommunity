@@ -251,10 +251,8 @@ class Photo implements Taggable, Commentable, Likeable
         return $this->likedBy;
     }
     
-    protected function loadTagsFromDatabase(): void
-    {
-        // To be implemented with database connection
-    }
+    // protected function loadTagsFromDatabase(): void {
+    // }
     
     public function toArray(): array
     {
