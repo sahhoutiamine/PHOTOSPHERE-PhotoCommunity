@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../Database.php';
+require_once __DIR__ . '/../Models/Tag.php';
+
 
 class TagRepository {
     
@@ -23,7 +25,7 @@ class TagRepository {
         return $tags;
     }
     public function searchTags(string $query, int $limit = 20): array {
-        
+
     }
     public function getPhotosByTag(string $tagName, int $page = 1, int $perPage = 30): array {
 
