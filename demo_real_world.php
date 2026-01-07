@@ -25,7 +25,6 @@ function printInfo($info) {
 
 
 
-// Helper to manually create a photo (since we don't have a PhotoRepository in this scope)
 function createPhoto(PDO $db, int $userId, string $title, string $description) {
     $stmt = $db->prepare("
         INSERT INTO photos (title, description, imageLink, state, createdAt, userId) 
